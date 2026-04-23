@@ -1,0 +1,39 @@
+.page {
+  padding: 32px;
+  padding-bottom: 200px;
+  box-sizing: border-box;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 24px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  font-size: 28px;
+}
+
+.row:last-child {
+  margin-bottom: 0;
+}
+
+.muted {
+  color: #888;
+  font-size: 24px;
+}
+
+.action-card {
+  border: 1px solid #e8e4df;
+}
+
+.action-title {
+  font-size: 30px;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 8px;
+}

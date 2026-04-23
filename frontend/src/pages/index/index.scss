@@ -1,0 +1,74 @@
+.wrap {
+  min-height: 100vh;
+  padding: 24px 24px 200px;
+  box-sizing: border-box;
+}
+
+.toolbar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: center;
+}
+
+.search {
+  flex: 1;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  font-size: 26px;
+}
+
+.search-btn {
+  flex-shrink: 0;
+  background: #1a1a1a;
+  color: #fff;
+  border-radius: 12px;
+  padding: 16px 28px;
+  font-size: 26px;
+}
+
+.tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.tag-chip {
+  padding: 8px 20px;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 24px;
+  color: #444;
+}
+
+.tag-chip.on {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.card-text {
+  font-size: 30px;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.card-meta {
+  font-size: 22px;
+  color: #888;
+}
+
+.empty {
+  text-align: center;
+  color: #888;
+  padding: 80px 24px;
+}

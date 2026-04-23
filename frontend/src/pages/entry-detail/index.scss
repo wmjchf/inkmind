@@ -1,0 +1,56 @@
+.page {
+  padding: 32px;
+  padding-bottom: 160px;
+  box-sizing: border-box;
+}
+
+.content {
+  font-size: 32px;
+  line-height: 1.65;
+  margin-bottom: 32px;
+}
+
+.section-title {
+  font-size: 24px;
+  color: #666;
+  margin-bottom: 12px;
+}
+
+.inter-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  font-size: 28px;
+  line-height: 1.6;
+}
+
+.actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 20px 32px calc(20px + env(safe-area-inset-bottom));
+  background: rgba(247, 245, 242, 0.96);
+  display: flex;
+  gap: 16px;
+}
+
+.btn {
+  flex: 1;
+  text-align: center;
+  padding: 22px;
+  border-radius: 12px;
+  font-size: 28px;
+}
+
+.btn.primary {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+.btn.danger {
+  background: #fff;
+  color: #b42318;
+  border: 1px solid #e7e0d9;
+}
