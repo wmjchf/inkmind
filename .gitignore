@@ -1,9 +1,7 @@
 node_modules/
-dist/
 *.log
 .env
 .DS_Store
-backend/dist/
 frontend/dist/
 
 # 本地 TLS 证书（勿提交仓库）
