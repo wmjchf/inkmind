@@ -4,9 +4,17 @@ dotenv.config();
 
 const n = (v: string | undefined, d: number) => (v ? parseInt(v, 10) : d) || d;
 
+const sslCertPath = (process.env.SSL_CERT_PATH || "").trim();
+const sslKeyPath = (process.env.SSL_KEY_PATH || "").trim();
+
 export const config = {
   port: n(process.env.PORT, 3000),
   nodeEnv: process.env.NODE_ENV || "development",
+  /** 同时配置 SSL_CERT_PATH + SSL_KEY_PATH（PEM，如 Let’s Encrypt 的 fullchain.pem / privkey.pem）时走 https.createServer */
+  ssl:
+    sslCertPath && sslKeyPath
+      ? { enabled: true as const, certPath: sslCertPath, keyPath: sslKeyPath }
+      : { enabled: false as const, certPath: "", keyPath: "" },
   mysql: {
     host: process.env.MYSQL_HOST || "127.0.0.1",
     port: n(process.env.MYSQL_PORT, 3306),

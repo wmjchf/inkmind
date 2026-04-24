@@ -5,3 +5,7 @@ dist/
 .DS_Store
 backend/dist/
 frontend/dist/
+
+# 本地 TLS 证书（勿提交仓库）
+backend/*.pem
+backend/*.key
