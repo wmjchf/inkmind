@@ -149,7 +149,8 @@ export default function IndexPage() {
             const bookDisplay = formatBookTitleWithGuillemets(it.book_title);
             const tagLine = it.tags?.length ? it.tags.map((x) => x.name).join("、") : "无标签";
             return (
-            <View key={it.id} className="card" onClick={() => goDetail(it.id)}>
+            <View key={it.id} className="card entry-card" onClick={() => goDetail(it.id)}>
+              <View className="entry-card-fold" />
               <View className="card-text">{it.content}</View>
               <View className="card-meta">
                 {bookDisplay ? <Text className="card-book">{bookDisplay}</Text> : null}

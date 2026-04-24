@@ -35,7 +35,9 @@ export default function OcrEntryPage() {
   return (
     <View className="ocr-placeholder">
       <Text className="title">用底部中间的「识别」</Text>
-      <Text className="sub">主入口在底部 Tab 中间「识别」：拍书页后录入内容。想纯手输请到「我的」→ 手动添加金句。</Text>
+      <Text className="sub">
+        主入口在底部 Tab 中间「识别」：拍书页后进入添加页，会自动识别文字填入内容区（可校对）。想纯手输请到「我的」→ 手动添加金句。
+      </Text>
       <View className="btn" onClick={() => void open()}>
         拍书页识别
       </View>

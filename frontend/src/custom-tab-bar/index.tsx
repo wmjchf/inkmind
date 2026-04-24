@@ -29,7 +29,7 @@ export default class CustomTabBar extends Component<unknown, State> {
     void Taro.switchTab({ url: "/pages/profile/index" });
   };
 
-  /** 主入口「识别」：调起相机拍书页，不切换 Tab；OCR API 后续再接 */
+  /** 主入口「识别」：调起相机拍书页 → 添加页自动请求后端 OCR 填入内容 */
   openCamera = async () => {
     try {
       const res = await Taro.chooseMedia({

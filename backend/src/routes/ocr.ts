@@ -2,7 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import { config } from "../config";
 import { asyncHandler, requireAuth } from "../middleware/requireAuth";
-import { recognizeGeneralFromImageBuffer } from "../services/aliyunOcr";
+import { recognizeAdvancedFromImageBuffer } from "../services/aliyunOcr";
 import { HttpError } from "../lib/httpError";
 
 const upload = multer({
@@ -14,7 +14,7 @@ export const ocrRouter = Router();
 ocrRouter.use(requireAuth);
 
 /**
- * 上传图片 → 阿里云 RecognizeGeneral → 返回纯文本（供小程序填表）。
+ * 上传图片 → 阿里云 RecognizeAdvanced（全文识别高精版）→ 返回纯文本（供小程序填表）。
  * 表单字段名：`image`（与 Taro.uploadFile name 一致）
  */
 ocrRouter.post(
@@ -34,7 +34,7 @@ ocrRouter.post(
       throw new HttpError(400, "VALIDATION", "请使用 multipart 上传字段 image（图片二进制）");
     }
 
-    const { text } = await recognizeGeneralFromImageBuffer(buf, {
+    const { text } = await recognizeAdvancedFromImageBuffer(buf, {
       accessKeyId,
       accessKeySecret,
       endpoint,
@@ -42,8 +42,8 @@ ocrRouter.post(
 
     res.json({
       text,
-      provider: "aliyun-ocr",
-      action: "RecognizeGeneral",
+      provider: "aliyun-ocr-advanced",
+      action: "RecognizeAdvanced",
     });
   })
 );

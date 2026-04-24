@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { aliyunTimestamp, percentEncode, signAliyunRpc } from "./aliyunRpcSign";
 import { HttpError } from "../lib/httpError";
 
-export type RecognizeGeneralResult = {
+export type RecognizeAdvancedResult = {
   text: string;
   raw: unknown;
 };
@@ -15,23 +15,23 @@ function buildQueryString(params: Record<string, string>): string {
 }
 
 /**
- * 阿里云文字识别「通用印刷体」RecognizeGeneral（OpenAPI 2021-07-07）。
+ * 阿里云文字识别「全文识别高精版」RecognizeAdvanced（OpenAPI 2021-07-07）。
  * 无官方 Node SDK 时：按文档做 RPC 签名 + POST body 传原图二进制。
  *
  * 文档：签名 https://help.aliyun.com/zh/ocr/developer-reference/signature-method
- *       接口 https://help.aliyun.com/zh/ocr/developer-reference/api-ocr-api-2021-07-07-recognizegeneral
+ *       接口 https://help.aliyun.com/zh/ocr/developer-reference/api-ocr-api-2021-07-07-recognizeadvanced
  */
-export async function recognizeGeneralFromImageBuffer(
+export async function recognizeAdvancedFromImageBuffer(
   imageBuffer: Buffer,
   opts: {
     accessKeyId: string;
     accessKeySecret: string;
     endpoint?: string;
   }
-): Promise<RecognizeGeneralResult> {
+): Promise<RecognizeAdvancedResult> {
   const endpoint = opts.endpoint || "ocr-api.cn-hangzhou.aliyuncs.com";
   const baseParams: Record<string, string> = {
-    Action: "RecognizeGeneral",
+    Action: "RecognizeAdvanced",
     Version: "2021-07-07",
     Format: "JSON",
     AccessKeyId: opts.accessKeyId,

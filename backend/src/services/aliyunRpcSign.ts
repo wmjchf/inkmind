@@ -12,7 +12,7 @@ export function aliyunTimestamp(): string {
 
 /**
  * 计算 RPC 签名（不含 Signature 键本身）。
- * @param method 与真实 HTTP 请求一致，RecognizeGeneral 传图片 body 时用 POST
+ * @param method 与真实 HTTP 请求一致，OCR 传图片 body 时用 POST
  */
 export function signAliyunRpc(
   method: "GET" | "POST",

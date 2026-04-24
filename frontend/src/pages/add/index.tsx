@@ -1,8 +1,9 @@
-import { View, Text, Input, Textarea, Image } from "@tarojs/components";
+import { View, Text, Input, Textarea } from "@tarojs/components";
 import Taro, { useLoad } from "@tarojs/taro";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ensureLogin } from "../../services/auth";
 import { createEntry, suggestTags } from "../../services/entries";
+import { recognizeImage } from "../../services/ocr";
 import "./index.scss";
 
 function parseTagsInput(raw: string): string[] {
@@ -42,19 +43,40 @@ export default function AddPage() {
   const [content, setContent] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [tagsRaw, setTagsRaw] = useState("");
-  const [localImagePath, setLocalImagePath] = useState("");
   const [entrySource, setEntrySource] = useState<"manual" | "ocr">("manual");
+  const ocrStartedRef = useRef(false);
 
   useLoad((q) => {
     const rawPath = Array.isArray(q.localPath) ? q.localPath[0] : q.localPath;
     const lp = typeof rawPath === "string" ? decodeURIComponent(rawPath) : "";
     const rawSrc = Array.isArray(q.source) ? q.source[0] : q.source;
     const src = rawSrc === "ocr" ? "ocr" : "manual";
-    if (lp) setLocalImagePath(lp);
     setEntrySource(src === "ocr" ? "ocr" : "manual");
     if (src === "ocr" || lp) {
       void Taro.setNavigationBarTitle({ title: lp ? "识别录入" : "添加收藏" });
     }
+
+    if (!lp || src !== "ocr" || ocrStartedRef.current) return;
+    ocrStartedRef.current = true;
+    void (async () => {
+      try {
+        await ensureLogin();
+        Taro.showLoading({ title: "识别中…", mask: true });
+        const { text } = await recognizeImage(lp);
+        const t = text.trim();
+        const capped = t.length > 5000 ? t.slice(0, 5000) : t;
+        setContent(capped);
+        Taro.showToast({
+          title: capped ? "已填入识别结果，请校对" : "未识别到文字，请手动输入",
+          icon: capped ? "success" : "none",
+        });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "识别失败";
+        Taro.showToast({ title: msg, icon: "none", duration: 3200 });
+      } finally {
+        Taro.hideLoading();
+      }
+    })();
   });
 
   const submit = async () => {
@@ -128,15 +150,6 @@ export default function AddPage() {
           </Text>
         </View>
 
-        {localImagePath ? (
-          <View className="preview-block">
-            <Image className="preview-img" src={localImagePath} mode="widthFix" />
-            <Text className="preview-tip">
-              第三方 OCR 接入后将自动填入文字；请先对照图片手动输入或校对。
-            </Text>
-          </View>
-        ) : null}
-
         <View className="form-card">
           <View className="form-section">
             <FieldLabel title="书名" required />
@@ -157,9 +170,7 @@ export default function AddPage() {
               <Textarea
                 className="field textarea"
                 placeholder={
-                  entrySource === "ocr"
-                    ? "拍书页后请在此输入或校对内容（OCR 待接入）"
-                    : "粘贴或输入触动你的内容"
+                  entrySource === "ocr" ? "识别结果可在此修改、删减或分段" : "粘贴或输入触动你的内容"
                 }
                 value={content}
                 onInput={(e) => setContent(e.detail.value)}
