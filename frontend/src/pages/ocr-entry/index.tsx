@@ -34,10 +34,10 @@ export default function OcrEntryPage() {
 
   return (
     <View className="ocr-placeholder">
-      <Text className="title">用底部中间的「＋」拍照</Text>
-      <Text className="sub">主要入口在底部 Tab 中间「＋」。想纯手输请到「我的」→ 手动添加金句。</Text>
+      <Text className="title">用底部中间的「识别」</Text>
+      <Text className="sub">主入口在底部 Tab 中间「识别」：拍书页后录入内容。想纯手输请到「我的」→ 手动添加金句。</Text>
       <View className="btn" onClick={() => void open()}>
-        打开相机
+        拍书页识别
       </View>
       <View className="link" onClick={() => Taro.switchTab({ url: "/pages/index/index" })}>
         回收藏

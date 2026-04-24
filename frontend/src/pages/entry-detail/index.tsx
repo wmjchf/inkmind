@@ -1,9 +1,18 @@
-import { View, Text } from "@tarojs/components";
-import Taro, { useLoad } from "@tarojs/taro";
-import { useState } from "react";
+import { View, Text, Image, Button, Textarea } from "@tarojs/components";
+import Taro, { useLoad, useShareAppMessage } from "@tarojs/taro";
+import { useRef, useState } from "react";
 import { ensureLogin } from "../../services/auth";
-import { deleteEntry, fetchEntryDetail, interpretEntry, type Interpretation } from "../../services/entries";
+import {
+  deleteEntry,
+  fetchEntryDetail,
+  interpretEntry,
+  updateEntry,
+  type Interpretation,
+} from "../../services/entries";
+import { entryDetailIcons } from "../../assets/entry-detail-icons";
 import "./index.scss";
+
+type SharePayload = { id: number; bookTitle: string | null; content: string };
 
 export default function EntryDetailPage() {
   const [id, setId] = useState(0);
@@ -11,14 +20,39 @@ export default function EntryDetailPage() {
   const [bookTitle, setBookTitle] = useState<string | null>(null);
   const [tags, setTags] = useState<{ id: number; name: string }[]>([]);
   const [interpretation, setInterpretation] = useState<Interpretation | null>(null);
+  const [userNote, setUserNote] = useState("");
+  const [noteModalOpen, setNoteModalOpen] = useState(false);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [noteSaving, setNoteSaving] = useState(false);
+
+  const shareRef = useRef<SharePayload>({ id: 0, bookTitle: null, content: "" });
+
+  useShareAppMessage(() => {
+    const { id: sid, bookTitle: bt, content: c } = shareRef.current;
+    const path = `/pages/entry-detail/index?id=${sid}`;
+    const t = bt?.trim();
+    let title = "InkMind 摘录";
+    if (t) title = `「${t}」`;
+    else {
+      const raw = c.trim();
+      if (raw) title = raw.length > 30 ? `${raw.slice(0, 30)}…` : raw;
+    }
+    return { title, path };
+  });
 
   const loadDetail = async (entryId: number) => {
     await ensureLogin();
     const res = await fetchEntryDetail(entryId);
+    shareRef.current = {
+      id: entryId,
+      bookTitle: res.entry.book_title,
+      content: res.entry.content,
+    };
     setContent(res.entry.content);
     setBookTitle(res.entry.book_title);
     setTags(res.entry.tags || []);
     setInterpretation(res.interpretation);
+    setUserNote(res.entry.note ?? "");
   };
 
   useLoad(async (q) => {
@@ -26,6 +60,7 @@ export default function EntryDetailPage() {
     const n = raw ? parseInt(String(raw), 10) : 0;
     const entryId = Number.isFinite(n) ? n : 0;
     setId(entryId);
+    shareRef.current.id = entryId;
     if (!entryId) {
       Taro.showToast({ title: "无效条目", icon: "none" });
       return;
@@ -53,6 +88,33 @@ export default function EntryDetailPage() {
     }
   };
 
+  const openNoteModal = () => {
+    setNoteDraft(userNote);
+    setNoteModalOpen(true);
+  };
+
+  const closeNoteModal = () => {
+    setNoteModalOpen(false);
+  };
+
+  const saveNoteFromModal = async () => {
+    if (!id) return;
+    try {
+      await ensureLogin();
+      setNoteSaving(true);
+      const trimmed = noteDraft.trim().slice(0, 500);
+      await updateEntry(id, { note: trimmed.length ? trimmed : null });
+      setUserNote(trimmed);
+      setNoteModalOpen(false);
+      Taro.showToast({ title: "已保存", icon: "success" });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "保存失败";
+      Taro.showToast({ title: msg, icon: "none" });
+    } finally {
+      setNoteSaving(false);
+    }
+  };
+
   const onDelete = () => {
     if (!id) return;
     void Taro.showModal({
@@ -75,41 +137,107 @@ export default function EntryDetailPage() {
 
   return (
     <View className="page">
-      {bookTitle ? (
-        <View className="section-title" style={{ marginBottom: 8 }}>
-          {bookTitle}
+      <View className="page-main">
+        <View className="ai-hero">
+          <Text className="ai-hero-kicker">InkMind · AI</Text>
+          <Text className="ai-hero-title">摘录详情</Text>
+          <Text className="ai-hero-desc">
+            正文与标签来自你的收藏；解读由模型生成，可多次重新生成直至满意。
+          </Text>
         </View>
-      ) : null}
-      <View className="content">{content || "…"}</View>
-      {tags.length ? (
-        <View className="section-title">标签：{tags.map((t) => t.name).join("、")}</View>
-      ) : null}
 
-      <View className="section-title" style={{ marginTop: 24 }}>
-        AI 解读
+        {bookTitle ? (
+          <View className="card card-book">
+            <Text className="card-kicker">书名</Text>
+            <Text className="book-title-text">{bookTitle}</Text>
+          </View>
+        ) : null}
+
+        <View className="card card-quote">
+          <Text className="card-kicker">正文</Text>
+          <Text className="quote-body">{content || "…"}</Text>
+        </View>
+
+        <View className="card card-tags">
+          <Text className="card-kicker">标签</Text>
+          <Text className="tag-line">
+            {tags.length ? tags.map((t) => t.name).join("、") : "暂无"}
+          </Text>
+        </View>
+
+        <View className="card card-note">
+          <View className="note-card-head">
+            <Text className="card-kicker note-card-kicker">我的随记</Text>
+            <View className="note-edit-btn" onClick={openNoteModal}>
+              <Text className="note-edit-btn-text">编辑</Text>
+            </View>
+          </View>
+          <Text className="note-hint">写下你对摘录的解读与联想，留作日后回看（选填）</Text>
+          <Text className={`note-display ${userNote.trim() ? "" : "note-display-empty"}`}>
+            {userNote.trim() ? userNote : "暂无随记，点击「编辑」添加"}
+          </Text>
+        </View>
+
+        <View className="card card-ai">
+          <Text className="card-kicker">AI 解读</Text>
+          {interpretation ? (
+            <View className="inter-blocks">
+              <Text className="inter-label">摘要</Text>
+              <Text className="inter-para">{interpretation.summary}</Text>
+              <Text className="inter-label">共鸣</Text>
+              <Text className="inter-para">{interpretation.resonance}</Text>
+              <Text className="inter-label">反思</Text>
+              <Text className="inter-reflect">{interpretation.reflection_question}</Text>
+            </View>
+          ) : (
+            <Text className="inter-placeholder">尚未生成解读，点击下方按钮。</Text>
+          )}
+        </View>
       </View>
-      {interpretation ? (
-        <View className="inter-box">
-          <Text>{interpretation.summary}</Text>
-          {"\n\n"}
-          <Text>{interpretation.resonance}</Text>
-          {"\n\n"}
-          <Text style={{ fontWeight: 600 }}>反思：{interpretation.reflection_question}</Text>
-        </View>
-      ) : (
-        <View className="inter-box" style={{ color: "#888" }}>
-          尚未生成解读，点击下方按钮。
-        </View>
-      )}
 
       <View className="actions">
-        <View className="btn danger" onClick={onDelete}>
-          删除
-        </View>
         <View className="btn primary" onClick={() => void onInterpret()}>
-          {interpretation ? "重新解读" : "生成解读"}
+          <Text className="btn-primary-text">
+            {interpretation ? "重新解读" : "生成解读"}
+          </Text>
+        </View>
+        <View className="actions-side">
+          <Button className="btn-icon btn-share-open" openType="share">
+            <Image className="btn-icon-img" src={entryDetailIcons.share} mode="aspectFit" />
+          </Button>
+          <View className="btn-icon btn-icon-danger" onClick={onDelete}>
+            <Image className="btn-icon-img" src={entryDetailIcons.trash} mode="aspectFit" />
+          </View>
         </View>
       </View>
+
+      {noteModalOpen ? (
+        <View className="note-modal-mask" onClick={closeNoteModal}>
+          <View className="note-modal-panel" onClick={(e) => e.stopPropagation()}>
+            <Text className="note-modal-title">编辑随记</Text>
+            <Text className="note-modal-sub">最多 500 字，保存后展示在详情里</Text>
+            <Textarea
+              className="note-modal-textarea"
+              value={noteDraft}
+              maxlength={500}
+              focus
+              onInput={(e) => setNoteDraft(e.detail.value)}
+            />
+            <Text className="note-modal-count">{noteDraft.length}/500</Text>
+            <View className="note-modal-actions">
+              <View className="note-modal-btn note-modal-btn-cancel" onClick={closeNoteModal}>
+                <Text className="note-modal-btn-cancel-text">取消</Text>
+              </View>
+              <View
+                className={`note-modal-btn note-modal-btn-save ${noteSaving ? "note-modal-btn-disabled" : ""}`}
+                onClick={() => !noteSaving && void saveNoteFromModal()}
+              >
+                <Text className="note-modal-btn-save-text">{noteSaving ? "保存中…" : "保存"}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 }

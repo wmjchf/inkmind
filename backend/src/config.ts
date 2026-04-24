@@ -22,4 +22,10 @@ export const config = {
     devMock: process.env.WECHAT_DEV_MOCK === "1",
   },
   freeEntryLimit: n(process.env.FREE_ENTRY_LIMIT, 100),
+  /** 阿里云文字识别（无 Node SDK 时用 OpenAPI + 自签名） */
+  aliyunOcr: {
+    accessKeyId: process.env.ALIYUN_ACCESS_KEY_ID || "",
+    accessKeySecret: process.env.ALIYUN_ACCESS_KEY_SECRET || "",
+    endpoint: process.env.ALIYUN_OCR_ENDPOINT || "ocr-api.cn-hangzhou.aliyuncs.com",
+  },
 };

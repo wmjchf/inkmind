@@ -9,4 +9,10 @@
 3. `npm install` → `npm run dev`。
 4. 健康检查：`GET http://127.0.0.1:3000/health`。
 
+**阿里云 OCR（无 Node SDK）**：配置 `ALIYUN_ACCESS_KEY_ID` / `ALIYUN_ACCESS_KEY_SECRET` 后，`POST /api/v1/ocr/recognize`（`Authorization: Bearer …`，`multipart` 字段 `image`）走 OpenAPI 自签名调用 `RecognizeGeneral`（实现见 `src/services/aliyunOcr.ts`）。
+
+**AI 打标签**：`POST /api/v1/entries/:id/tags/ai` 等；body 可选 `strategy`：`merge`（默认）、`append_if_empty`、`replace_ai_only`。推荐配置 **`DASHSCOPE_API_KEY`**；模型由 **`AI_MODEL`**（或兼容旧名 **`AI_TAG_MODEL`**）指定，未设时默认 **`qwen3.6-plus`** / **`gpt-4o-mini`**，与解读相同。也可使用 **`OPENAI_API_KEY`** + `AI_CHAT_BASE_URL`。无 Key 时用占位词。逻辑见 `src/services/aiTagSuggest.ts`、`applyAiTags`。
+
+**AI 解读**：`POST /api/v1/entries/:id/interpret` 与打标签共用同一套 Key、Base URL 与模型。无 Key 时写入内置静态文案。见 `src/services/aiInterpret.ts`、`runInterpretation`。
+
 正式环境请配置 `WECHAT_APPID`、`WECHAT_APPSECRET` 并关闭 `WECHAT_DEV_MOCK`。

@@ -1,17 +1,14 @@
-import { View, Text } from "@tarojs/components";
+import { View, Text, Image } from "@tarojs/components";
 import Taro, { useDidShow, useReady } from "@tarojs/taro";
 import { useState } from "react";
 import { ensureLogin } from "../../services/auth";
 import { fetchDailyRandom } from "../../services/entries";
-import { fetchMe, fetchStats } from "../../services/me";
+import { fetchStats } from "../../services/me";
+import { profileIcons } from "../../assets/profile-icons";
+import dailyReviewIcon from "@/assets/review.svg";
 import "./index.scss";
 
 export default function ProfilePage() {
-  const [me, setMe] = useState<{
-    entryCount: number;
-    plan: string;
-    freeEntryLimit: number | null;
-  } | null>(null);
   const [stats, setStats] = useState<{
     totalEntries: number;
     entriesLast7d: number;
@@ -21,12 +18,7 @@ export default function ProfilePage() {
   const load = async () => {
     try {
       await ensureLogin();
-      const [m, s] = await Promise.all([fetchMe(), fetchStats()]);
-      setMe({
-        entryCount: m.entryCount,
-        plan: m.plan,
-        freeEntryLimit: m.freeEntryLimit,
-      });
+      const s = await fetchStats();
       setStats(s);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "加载失败";
@@ -63,53 +55,71 @@ export default function ProfilePage() {
 
   return (
     <View className="page">
+      <View className="ai-hero">
+        <View className="ai-hero-head">
+          <Image className="ai-hero-icon" src={profileIcons.hero} mode="aspectFit" />
+          <View className="ai-hero-copy">
+            <Text className="ai-hero-kicker">InkMind · AI</Text>
+            <Text className="ai-hero-title">我的阅读空间</Text>
+            <Text className="ai-hero-desc">
+              在这里手动收录摘录、查看数据与解读覆盖；也可用「今日随机」在碎片时间重温一条收藏。
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* 账户（会员档位 / 用量）区块暂时隐藏；恢复时需再接 fetchMe + me state + 原 card */}
+
       <View
         className="card action-card"
         onClick={() => void Taro.navigateTo({ url: "/pages/add/index?source=manual" })}
       >
-        <Text className="action-title">手动添加金句</Text>
-        <View className="muted">不拍照时，在此输入或粘贴文字</View>
-      </View>
-
-      <View className="card">
-        <View className="row">
-          <Text>会员档位</Text>
-          <Text>{me?.plan === "pro" ? "Pro" : "免费"}</Text>
+        <View className="action-head">
+          <Image className="action-icon" src={profileIcons.add} mode="aspectFit" />
+          <View className="action-copy">
+            <Text className="action-badge">收录</Text>
+            <Text className="action-title">手动添加</Text>
+            <View className="muted">不用拍书页时，在此输入或粘贴文字</View>
+          </View>
         </View>
-        {me?.freeEntryLimit != null ? (
-          <View className="row">
-            <Text>收藏用量</Text>
-            <Text>
-              {me.entryCount} / {me.freeEntryLimit}
-            </Text>
+      </View>
+
+      <View className="card card-daily" onClick={() => void daily()}>
+        <View className="daily-head">
+          <Image className="daily-icon" src={dailyReviewIcon} mode="aspectFit" />
+          <View className="daily-copy">
+            <Text className="daily-badge">回顾</Text>
+            <Text className="daily-title">今日随机回顾</Text>
+            <View className="muted daily-sub">随机打开一条收藏，适合碎片时间重温</View>
           </View>
-        ) : (
-          <View className="row">
-            <Text>收藏条数</Text>
-            <Text>{me?.entryCount ?? "—"}</Text>
-          </View>
-        )}
+        </View>
       </View>
 
       <View className="card">
+        <View className="card-kicker-row">
+          <Image className="card-kicker-icon" src={profileIcons.chart} mode="aspectFit" />
+          <Text className="card-kicker">数据</Text>
+        </View>
         <View className="row">
-          <Text>总收藏</Text>
+          <View className="row-left">
+            <Image className="row-icon" src={profileIcons.book} mode="aspectFit" />
+            <Text>总收藏</Text>
+          </View>
           <Text>{stats?.totalEntries ?? "—"}</Text>
         </View>
         <View className="row">
-          <Text>近 7 日新增</Text>
+          <View className="row-left">
+            <Image className="row-icon" src={profileIcons.calendar} mode="aspectFit" />
+            <Text>近 7 日新增</Text>
+          </View>
           <Text>{stats?.entriesLast7d ?? "—"}</Text>
         </View>
         <View className="row">
-          <Text>解读覆盖率</Text>
+          <View className="row-left">
+            <Image className="row-icon" src={profileIcons.percent} mode="aspectFit" />
+            <Text>解读覆盖率</Text>
+          </View>
           <Text>{stats != null ? `${Math.round(stats.interpretationRate * 100)}%` : "—"}</Text>
-        </View>
-      </View>
-
-      <View className="card" onClick={() => void daily()}>
-        <Text style={{ fontSize: 30 }}>今日随机回顾</Text>
-        <View className="muted" style={{ marginTop: 8 }}>
-          随机打开一条收藏
         </View>
       </View>
     </View>

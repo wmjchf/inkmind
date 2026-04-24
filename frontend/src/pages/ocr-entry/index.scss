@@ -11,26 +11,28 @@
   font-size: 32px;
   font-weight: 600;
   margin-bottom: 20px;
+  color: #333333;
 }
 
 .sub {
   font-size: 26px;
-  color: #666;
+  color: #666666;
   line-height: 1.6;
   margin-bottom: 48px;
 }
 
 .btn {
-  background: #1a1a1a;
-  color: #fff;
+  background: #38a8ff;
+  color: #ffffff;
   padding: 22px 56px;
   border-radius: 12px;
   font-size: 28px;
   margin-bottom: 32px;
+  box-shadow: 0 4px 12px rgba(56, 168, 255, 0.2);
 }
 
 .link {
   font-size: 26px;
-  color: #666;
+  color: #38a8ff;
   text-decoration: underline;
 }

@@ -1,3 +1,3 @@
 export default {
-  navigationBarTitleText: "拍照",
+  navigationBarTitleText: "识别",
 };

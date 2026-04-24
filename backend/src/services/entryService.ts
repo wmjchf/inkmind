@@ -2,6 +2,9 @@ import type { RowDataPacket, ResultSetHeader } from "mysql2";
 import { pool } from "../db";
 import { config } from "../config";
 import { HttpError } from "../lib/httpError";
+import { resolveChatCompletionConfig } from "../lib/aiChatConfig";
+import { interpretContentWithModel } from "./aiInterpret";
+import { suggestTagsFromContent } from "./aiTagSuggest";
 
 export type EntrySource = "manual" | "ocr";
 
@@ -23,18 +26,21 @@ export type Interpretation = {
   created_at: Date;
 };
 
+type TagCreator = "user" | "ai" | "system";
+
 async function linkTagsByNames(
   conn: import("mysql2/promise").PoolConnection,
   userId: number,
   entryId: number,
-  tagNames: string[]
+  tagNames: string[],
+  createdBy: TagCreator = "user"
 ): Promise<void> {
   const names = [...new Set(tagNames.map((t) => t.trim()).filter(Boolean))].slice(0, 20);
   for (const name of names) {
     await conn.query(
-      `INSERT INTO tags (user_id, name, created_by) VALUES (:userId, :name, 'user')
+      `INSERT INTO tags (user_id, name, created_by) VALUES (:userId, :name, :createdBy)
        ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)`,
-      { userId, name }
+      { userId, name, createdBy }
     );
     const [rows] = await conn.query<RowDataPacket[]>("SELECT LAST_INSERT_ID() AS id");
     const tagId = Number(rows[0]?.id);
@@ -46,9 +52,21 @@ async function linkTagsByNames(
   }
 }
 
+export async function listDistinctBookTitles(userId: number): Promise<string[]> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT DISTINCT e.book_title AS t
+     FROM entries e
+     WHERE e.user_id = :userId AND e.is_deleted = 0
+       AND e.book_title IS NOT NULL AND TRIM(e.book_title) <> ''
+     ORDER BY e.book_title ASC`,
+    { userId }
+  );
+  return rows.map((r) => String(r.t));
+}
+
 export async function listEntries(
   userId: number,
-  opts: { page: number; pageSize: number; q?: string; tagId?: number }
+  opts: { page: number; pageSize: number; q?: string; tagId?: number; bookTitle?: string }
 ): Promise<{ items: EntryListItem[]; total: number }> {
   const offset = (opts.page - 1) * opts.pageSize;
   const params: Record<string, string | number> = { userId, offset, limit: opts.pageSize };
@@ -61,6 +79,11 @@ export async function listEntries(
   if (opts.tagId) {
     where += " AND EXISTS (SELECT 1 FROM entry_tags et WHERE et.entry_id = e.id AND et.tag_id = :tagId)";
     params.tagId = opts.tagId;
+  }
+  const bookTrim = opts.bookTitle?.trim();
+  if (bookTrim) {
+    where += " AND e.book_title = :bookTitle";
+    params.bookTitle = bookTrim;
   }
 
   const [countRows] = await pool.query<RowDataPacket[]>(
@@ -175,6 +198,9 @@ export async function createEntry(
   const content = body.content?.trim();
   if (!content) throw new HttpError(400, "VALIDATION", "content 不能为空");
 
+  const bookTitleTrim = (body.bookTitle ?? "").trim();
+  if (!bookTitleTrim) throw new HttpError(400, "VALIDATION", "书名不能为空");
+
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -199,7 +225,7 @@ export async function createEntry(
         userId,
         content,
         sourceType,
-        bookTitle: body.bookTitle ?? null,
+        bookTitle: bookTitleTrim,
         note: body.note ?? null,
       }
     );
@@ -257,12 +283,16 @@ export async function updateEntry(
       params.content = c;
     }
     if (body.bookTitle !== undefined) {
+      const bt = body.bookTitle === null ? "" : String(body.bookTitle).trim();
+      if (!bt) throw new HttpError(400, "VALIDATION", "书名不能为空");
       fields.push("book_title = :bookTitle");
-      params.bookTitle = body.bookTitle;
+      params.bookTitle = bt;
     }
     if (body.note !== undefined) {
+      const raw = body.note === null ? "" : String(body.note);
+      const n = raw.trim().slice(0, 500);
       fields.push("note = :note");
-      params.note = body.note;
+      params.note = n.length ? n : null;
     }
 
     if (fields.length) {
@@ -308,6 +338,83 @@ export async function softDeleteEntry(userId: number, entryId: number): Promise<
   }
 }
 
+/** AI 打标签与手动标签的协同策略 */
+export type AiTagStrategy = "merge" | "append_if_empty" | "replace_ai_only";
+
+/**
+ * AI 生成标签并写入 `tags`（created_by=ai）+ `entry_tags`。
+ *
+ * - **merge**（默认）：保留用户已有标签；只补充模型输出里**尚未出现在该条收藏上**的标签（同名去重，不区分谁创建）。
+ * - **append_if_empty**：仅当该条**没有任何标签**时才打 AI 标签；已有手动标签则跳过。
+ * - **replace_ai_only**：删掉本条上所有「仅由 AI 建链」的标签关联后，再写入新一轮 AI 标签；**不动用户手动标签**。
+ */
+export async function applyAiTags(
+  userId: number,
+  entryId: number,
+  strategy: AiTagStrategy = "merge"
+): Promise<{ added: string[]; skipped: boolean; reason?: string }> {
+  const [erows] = await pool.query<RowDataPacket[]>(
+    `SELECT id, content, book_title FROM entries WHERE id = :id AND user_id = :userId AND is_deleted = 0`,
+    { id: entryId, userId }
+  );
+  if (!erows.length) throw new HttpError(404, "NOT_FOUND", "收藏不存在");
+
+  const content = erows[0].content as string;
+  const bookTitle = (erows[0].book_title as string | null) ?? null;
+
+  const [trows] = await pool.query<RowDataPacket[]>(
+    `SELECT t.name
+     FROM entry_tags et
+     JOIN tags t ON t.id = et.tag_id
+     WHERE et.entry_id = :entryId AND t.user_id = :userId`,
+    { entryId, userId }
+  );
+  const namesOnEntry = trows.map((r) => r.name as string);
+
+  if (strategy === "append_if_empty" && namesOnEntry.length > 0) {
+    return { added: [], skipped: true, reason: "ENTRY_HAS_TAGS" };
+  }
+
+  const suggestions = await suggestTagsFromContent(content, namesOnEntry, bookTitle);
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    if (strategy === "replace_ai_only") {
+      await conn.query(
+        `DELETE et FROM entry_tags et
+         INNER JOIN tags t ON t.id = et.tag_id
+         WHERE et.entry_id = :entryId AND t.user_id = :userId AND t.created_by = 'ai'`,
+        { entryId, userId }
+      );
+    }
+
+    const [afterRows] = await conn.query<RowDataPacket[]>(
+      `SELECT t.name
+       FROM entry_tags et
+       JOIN tags t ON t.id = et.tag_id
+       WHERE et.entry_id = :entryId AND t.user_id = :userId`,
+      { entryId, userId }
+    );
+    const currentLower = new Set(afterRows.map((r) => (r.name as string).toLowerCase()));
+
+    const toLink = suggestions.filter((s) => !currentLower.has(s.trim().toLowerCase()));
+
+    if (toLink.length) {
+      await linkTagsByNames(conn, userId, entryId, toLink, "ai");
+    }
+
+    await conn.commit();
+    return { added: toLink, skipped: false };
+  } catch (e) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
+}
+
 export async function randomEntry(userId: number): Promise<EntryListItem | null> {
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT id, content, source_type, book_title, note, created_at
@@ -325,23 +432,28 @@ export async function runInterpretation(
   entryId: number
 ): Promise<Interpretation> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT id, content FROM entries WHERE id = :id AND user_id = :userId AND is_deleted = 0`,
+    `SELECT id, content, book_title FROM entries WHERE id = :id AND user_id = :userId AND is_deleted = 0`,
     { id: entryId, userId }
   );
   if (!rows.length) throw new HttpError(404, "NOT_FOUND", "收藏不存在");
 
   const content = rows[0].content as string;
-  const provider = process.env.AI_PROVIDER || null;
-  const model = process.env.AI_MODEL || null;
+  const bookTitle = (rows[0].book_title as string | null) ?? null;
 
   let summary: string;
   let resonance: string;
   let reflection: string;
+  let provider: string | null = process.env.AI_PROVIDER?.trim() || null;
+  let model: string | null = null;
 
-  if (process.env.OPENAI_API_KEY) {
-    summary = "（已配置 OPENAI_API_KEY，可在此接入真实模型）";
-    resonance = `你收藏的句子：「${content.slice(0, 80)}${content.length > 80 ? "…" : ""}」`;
-    reflection = "这句话此刻最打动你的一点是什么？";
+  const chat = resolveChatCompletionConfig();
+  if (chat) {
+    const out = await interpretContentWithModel(content, chat, bookTitle);
+    summary = out.summary;
+    resonance = out.resonance;
+    reflection = out.reflection_question;
+    provider = out.provider;
+    model = out.model;
   } else {
     summary = "句子在字面之外往往还指向一种未被说清的情绪或处境。";
     resonance =

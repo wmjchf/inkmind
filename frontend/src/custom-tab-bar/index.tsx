@@ -1,6 +1,7 @@
 import { Component, ReactNode } from "react";
-import { View, Text } from "@tarojs/components";
+import { View, Text, Image } from "@tarojs/components";
 import Taro from "@tarojs/taro";
+import { iconCameraFab, tabIcons } from "../assets/tab-icons";
 import "./index.scss";
 
 type State = {
@@ -28,7 +29,7 @@ export default class CustomTabBar extends Component<unknown, State> {
     void Taro.switchTab({ url: "/pages/profile/index" });
   };
 
-  /** 主入口：仅调起相机，不切换 Tab；识别 API 后续再接 */
+  /** 主入口「识别」：调起相机拍书页，不切换 Tab；OCR API 后续再接 */
   openCamera = async () => {
     try {
       const res = await Taro.chooseMedia({
@@ -50,17 +51,26 @@ export default class CustomTabBar extends Component<unknown, State> {
     return (
       <View className="tabbar">
         <View className="tab" onClick={this.switchLeft}>
+          <Image
+            className="tab-icon"
+            src={selected === 0 ? tabIcons.bookOn : tabIcons.bookOff}
+            mode="aspectFit"
+          />
           <Text className={`tab-text ${selected === 0 ? "on" : ""}`}>收藏</Text>
         </View>
 
         <View className="tab-center-wrap">
           <View className="fab" onClick={() => void this.openCamera()}>
-            <Text>＋</Text>
+            <Image className="fab-icon" src={iconCameraFab} mode="aspectFit" />
           </View>
-          <Text className="fab-label">拍照</Text>
         </View>
 
         <View className="tab" onClick={this.switchRight}>
+          <Image
+            className="tab-icon"
+            src={selected === 2 ? tabIcons.userOn : tabIcons.userOff}
+            mode="aspectFit"
+          />
           <Text className={`tab-text ${selected === 2 ? "on" : ""}`}>我的</Text>
         </View>
       </View>

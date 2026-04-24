@@ -2,6 +2,7 @@ import { Router } from "express";
 import { asyncHandler, requireAuth, type AuthedRequest } from "../middleware/requireAuth";
 import {
   listEntries,
+  listDistinctBookTitles,
   getEntryDetail,
   createEntry,
   updateEntry,
@@ -9,6 +10,8 @@ import {
   randomEntry,
   runInterpretation,
   runOcr,
+  applyAiTags,
+  type AiTagStrategy,
 } from "../services/entryService";
 import { HttpError } from "../lib/httpError";
 
@@ -47,8 +50,27 @@ entriesRouter.get(
         : undefined;
     const tid = tagId && tagId > 0 ? tagId : undefined;
 
-    const { items, total } = await listEntries(userId, { page, pageSize, q, tagId: tid });
+    const bookTitle =
+      typeof req.query.bookTitle === "string" ? req.query.bookTitle.trim() : undefined;
+    const bt = bookTitle || undefined;
+
+    const { items, total } = await listEntries(userId, {
+      page,
+      pageSize,
+      q,
+      tagId: tid,
+      bookTitle: bt,
+    });
     res.json({ items, total, page, pageSize });
+  })
+);
+
+entriesRouter.get(
+  "/book-titles",
+  asyncHandler(async (req, res) => {
+    const userId = (req as AuthedRequest).userId;
+    const items = await listDistinctBookTitles(userId);
+    res.json({ items });
   })
 );
 
@@ -113,6 +135,24 @@ entriesRouter.delete(
       return res.status(404).json({ code: "NOT_FOUND", message: "收藏不存在" });
     }
     res.json({ ok: true });
+  })
+);
+
+function parseAiTagStrategy(v: unknown): AiTagStrategy {
+  if (v === "append_if_empty" || v === "replace_ai_only" || v === "merge") return v;
+  return "merge";
+}
+
+entriesRouter.post(
+  "/:id/tags/ai",
+  asyncHandler(async (req, res) => {
+    const userId = (req as AuthedRequest).userId;
+    const id = parseIntParam(req.params.id, 0);
+    if (!id) throw new HttpError(400, "VALIDATION", "无效 id");
+    const body = req.body || {};
+    const strategy = parseAiTagStrategy(body.strategy);
+    const result = await applyAiTags(userId, id, strategy);
+    res.json(result);
   })
 );
 
