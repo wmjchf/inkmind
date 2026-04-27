@@ -4,6 +4,8 @@ exports.entriesRouter = void 0;
 const express_1 = require("express");
 const requireAuth_1 = require("../middleware/requireAuth");
 const entryService_1 = require("../services/entryService");
+const wechatWxacode_1 = require("../services/wechatWxacode");
+const config_1 = require("../config");
 const httpError_1 = require("../lib/httpError");
 exports.entriesRouter = (0, express_1.Router)();
 exports.entriesRouter.use(requireAuth_1.requireAuth);
@@ -59,6 +61,27 @@ exports.entriesRouter.post("/", (0, requireAuth_1.asyncHandler)(async (req, res)
         tags: Array.isArray(body.tags) ? body.tags.map(String) : undefined,
     });
     res.status(201).json({ id });
+}));
+/** 必须在 `GET /:id` 之前注册，否则 `wxacode` 会被当成 id */
+exports.entriesRouter.get("/:id/wxacode", (0, requireAuth_1.asyncHandler)(async (req, res) => {
+    const userId = req.userId;
+    const id = parseIntParam(req.params.id, 0);
+    if (!id)
+        throw new httpError_1.HttpError(400, "VALIDATION", "无效 id");
+    const detail = await (0, entryService_1.getEntryDetail)(userId, id);
+    if (!detail) {
+        return res.status(404).json({ code: "NOT_FOUND", message: "收藏不存在" });
+    }
+    if (config_1.config.wechat.devMock) {
+        res.setHeader("Content-Type", "image/png");
+        res.setHeader("Cache-Control", "private, no-store");
+        res.send((0, wechatWxacode_1.mockWxacodePng)());
+        return;
+    }
+    const png = await (0, wechatWxacode_1.getUnlimitedWxacodePng)(id);
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "private, max-age=300");
+    res.send(png);
 }));
 exports.entriesRouter.get("/:id", (0, requireAuth_1.asyncHandler)(async (req, res) => {
     const userId = req.userId;

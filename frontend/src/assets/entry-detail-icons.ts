@@ -6,8 +6,13 @@ function svgUrl(svg: string): string {
 
 const blue = "#38a8ff";
 const red = "#ff4d4f";
+const white = "#ffffff";
 
 export const entryDetailIcons = {
+  /** 弹层、蒙层上的关闭（白描边，适配深色背景） */
+  close: svgUrl(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${white}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`
+  ),
   share: svgUrl(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${blue}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.49-6.82 3.98"/></svg>`
   ),

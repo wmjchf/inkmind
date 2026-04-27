@@ -13,6 +13,8 @@ import {
   applyAiTags,
   type AiTagStrategy,
 } from "../services/entryService";
+import { getUnlimitedWxacodePng, mockWxacodePng } from "../services/wechatWxacode";
+import { config } from "../config";
 import { HttpError } from "../lib/httpError";
 
 export const entriesRouter = Router();
@@ -87,6 +89,30 @@ entriesRouter.post(
       tags: Array.isArray(body.tags) ? body.tags.map(String) : undefined,
     });
     res.status(201).json({ id });
+  })
+);
+
+/** 必须在 `GET /:id` 之前注册，否则 `wxacode` 会被当成 id */
+entriesRouter.get(
+  "/:id/wxacode",
+  asyncHandler(async (req, res) => {
+    const userId = (req as AuthedRequest).userId;
+    const id = parseIntParam(req.params.id, 0);
+    if (!id) throw new HttpError(400, "VALIDATION", "无效 id");
+    const detail = await getEntryDetail(userId, id);
+    if (!detail) {
+      return res.status(404).json({ code: "NOT_FOUND", message: "收藏不存在" });
+    }
+    if (config.wechat.devMock) {
+      res.setHeader("Content-Type", "image/png");
+      res.setHeader("Cache-Control", "private, no-store");
+      res.send(mockWxacodePng());
+      return;
+    }
+    const png = await getUnlimitedWxacodePng(id);
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "private, max-age=300");
+    res.send(png);
   })
 );
 

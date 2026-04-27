@@ -86,11 +86,12 @@ async function listEntries(userId, opts) {
     return { items, total };
 }
 async function getEntryDetail(userId, entryId) {
-    const [rows] = await db_1.pool.query(`SELECT id, content, source_type, source_image_url, book_title, note, created_at, updated_at
-     FROM entries WHERE id = :id AND user_id = :userId AND is_deleted = 0`, { id: entryId, userId });
+    const [rows] = await db_1.pool.query(`SELECT id, user_id, content, source_type, source_image_url, book_title, note, created_at, updated_at
+     FROM entries WHERE id = :id AND is_deleted = 0`, { id: entryId });
     if (!rows.length)
         return null;
     const r = rows[0];
+    const is_owner = Number(r.user_id) === userId;
     const [tagRows] = await db_1.pool.query(`SELECT t.id, t.name FROM entry_tags et JOIN tags t ON t.id = et.tag_id WHERE et.entry_id = :id`, { id: entryId });
     const tags = tagRows.map((t) => ({ id: t.id, name: t.name }));
     const [interp] = await db_1.pool.query(`SELECT id, summary, resonance, reflection_question, created_at
@@ -117,6 +118,7 @@ async function getEntryDetail(userId, entryId) {
             tags,
         },
         interpretation,
+        is_owner,
     };
 }
 async function createEntry(userId, body) {

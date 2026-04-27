@@ -6,6 +6,7 @@ import { entriesRouter } from "./routes/entries";
 import { statsRouter } from "./routes/stats";
 import { tagsRouter } from "./routes/tags";
 import { ocrRouter } from "./routes/ocr";
+import { feedbackRouter } from "./routes/feedback";
 import { errorMiddleware } from "./middleware/requireAuth";
 
 export function createApp() {
@@ -23,6 +24,7 @@ export function createApp() {
   app.use("/api/v1/stats", statsRouter);
   app.use("/api/v1/tags", tagsRouter);
   app.use("/api/v1/ocr", ocrRouter);
+  app.use("/api/v1/feedback", feedbackRouter);
 
   app.use(errorMiddleware);
   return app;

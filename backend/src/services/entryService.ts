@@ -138,15 +138,18 @@ export async function getEntryDetail(
 ): Promise<{
   entry: EntryListItem & { source_image_url: string | null; updated_at: Date };
   interpretation: Interpretation | null;
+  /** 当前登录用户是否为该条摘录的作者（他人通过分享进入时为 false） */
+  is_owner: boolean;
 } | null> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT id, content, source_type, source_image_url, book_title, note, created_at, updated_at
-     FROM entries WHERE id = :id AND user_id = :userId AND is_deleted = 0`,
-    { id: entryId, userId }
+    `SELECT id, user_id, content, source_type, source_image_url, book_title, note, created_at, updated_at
+     FROM entries WHERE id = :id AND is_deleted = 0`,
+    { id: entryId }
   );
   if (!rows.length) return null;
 
   const r = rows[0];
+  const is_owner = Number(r.user_id) === userId;
   const [tagRows] = await pool.query<RowDataPacket[]>(
     `SELECT t.id, t.name FROM entry_tags et JOIN tags t ON t.id = et.tag_id WHERE et.entry_id = :id`,
     { id: entryId }
@@ -182,6 +185,7 @@ export async function getEntryDetail(
       tags,
     },
     interpretation,
+    is_owner,
   };
 }
 

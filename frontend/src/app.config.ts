@@ -3,6 +3,7 @@ export default {
     "pages/index/index",
     "pages/ocr-entry/index",
     "pages/profile/index",
+    "pages/feedback/index",
     "pages/add/index",
     "pages/entry-detail/index",
   ],

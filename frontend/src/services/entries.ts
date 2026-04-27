@@ -86,6 +86,7 @@ export async function fetchEntryDetail(id: number) {
   return apiRequest<{
     entry: EntryItem & { source_image_url: string | null; updated_at: string };
     interpretation: Interpretation | null;
+    is_owner: boolean;
   }>({
     url: `/entries/${id}`,
   });

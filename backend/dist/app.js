@@ -12,6 +12,7 @@ const entries_1 = require("./routes/entries");
 const stats_1 = require("./routes/stats");
 const tags_1 = require("./routes/tags");
 const ocr_1 = require("./routes/ocr");
+const feedback_1 = require("./routes/feedback");
 const requireAuth_1 = require("./middleware/requireAuth");
 function createApp() {
     const app = (0, express_1.default)();
@@ -26,6 +27,7 @@ function createApp() {
     app.use("/api/v1/stats", stats_1.statsRouter);
     app.use("/api/v1/tags", tags_1.tagsRouter);
     app.use("/api/v1/ocr", ocr_1.ocrRouter);
+    app.use("/api/v1/feedback", feedback_1.feedbackRouter);
     app.use(requireAuth_1.errorMiddleware);
     return app;
 }

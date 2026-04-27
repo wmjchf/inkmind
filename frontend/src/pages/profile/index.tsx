@@ -95,6 +95,20 @@ export default function ProfilePage() {
         </View>
       </View>
 
+      <View
+        className="card action-card"
+        onClick={() => void Taro.navigateTo({ url: "/pages/feedback/index" })}
+      >
+        <View className="action-head">
+          <Image className="action-icon" src={profileIcons.feedback} mode="aspectFit" />
+          <View className="action-copy">
+            <Text className="action-badge">帮助</Text>
+            <Text className="action-title">意见反馈</Text>
+            <View className="muted">遇到问题或有产品建议，告诉我们</View>
+          </View>
+        </View>
+      </View>
+
       <View className="card">
         <View className="card-kicker-row">
           <Image className="card-kicker-icon" src={profileIcons.chart} mode="aspectFit" />
