@@ -156,11 +156,11 @@
 
 .card-book {
   flex-shrink: 0;
-  max-width: 52%;
-  font-size: 28rpx;
+  max-width: 100%;
+  font-size: 30rpx;
   font-weight: 700;
-  color: #333333;
-  letter-spacing: 0.02em;
+  color: #38a8ff;
+  letter-spacing: 0.03em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -284,10 +284,11 @@
 }
 
 .entry-card .card-book {
-  font-size: 26rpx;
-  font-weight: 600;
-  color: #3a4d62;
-  letter-spacing: 0.03em;
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #38a8ff;
+  letter-spacing: 0.04em;
+  max-width: 100%;
 }
 
 .entry-card .card-meta-sep {

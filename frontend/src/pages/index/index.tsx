@@ -121,7 +121,7 @@ export default function IndexPage() {
         <Text className="ai-hero-kicker">InkMind · AI</Text>
         <Text className="ai-hero-title">我的收藏</Text>
         <Text className="ai-hero-desc">
-          摘录与标签一目了然；详情里可生成 AI 解读。有书名时可在下方筛选，下拉页面可刷新列表。
+          摘录一目了然；详情里可生成 AI 解读。有书名时可在下方筛选，下拉页面可刷新列表。
         </Text>
       </View>
 
@@ -147,18 +147,15 @@ export default function IndexPage() {
         <ScrollView className="list-scroll" scrollY>
           {items.map((it) => {
             const bookDisplay = formatBookTitleWithGuillemets(it.book_title);
-            const tagLine = it.tags?.length ? it.tags.map((x) => x.name).join("、") : "无标签";
             return (
             <View key={it.id} className="card entry-card" onClick={() => goDetail(it.id)}>
               <View className="entry-card-fold" />
               <View className="card-text">{it.content}</View>
-              <View className="card-meta">
-                {bookDisplay ? <Text className="card-book">{bookDisplay}</Text> : null}
-                {bookDisplay ? <Text className="card-meta-sep">·</Text> : null}
-                <View className="card-tags-wrap">
-                  <Text className="card-tags">{tagLine}</Text>
+              {bookDisplay ? (
+                <View className="card-meta">
+                  <Text className="card-book">{bookDisplay}</Text>
                 </View>
-              </View>
+              ) : null}
             </View>
             );
           })}

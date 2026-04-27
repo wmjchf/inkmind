@@ -21,7 +21,6 @@ export default function EntryDetailPage() {
   const [content, setContent] = useState("");
   const [bookTitle, setBookTitle] = useState<string | null>(null);
   const [sourceImageUrl, setSourceImageUrl] = useState<string | null>(null);
-  const [tags, setTags] = useState<{ id: number; name: string }[]>([]);
   const [interpretation, setInterpretation] = useState<Interpretation | null>(null);
   const [userNote, setUserNote] = useState("");
   /** 当前用户是否为该条摘录作者；他人从分享进入时为 false */
@@ -77,7 +76,6 @@ export default function EntryDetailPage() {
     setContent(res.entry.content);
     setBookTitle(res.entry.book_title);
     setSourceImageUrl(res.entry.source_image_url);
-    setTags(res.entry.tags || []);
     setInterpretation(res.interpretation);
     setUserNote(res.entry.note ?? "");
     /* 旧接口无 is_owner 时视为本人，避免误伤 */
@@ -164,7 +162,7 @@ export default function EntryDetailPage() {
   };
 
   const onDelete = () => {
-    if (!id) return;
+    if (!id || !isEntryOwner) return;
     void Taro.showModal({
       title: "删除收藏？",
       content: "删除后无法恢复",
@@ -190,7 +188,7 @@ export default function EntryDetailPage() {
           <Text className="ai-hero-kicker">InkMind · AI</Text>
           <Text className="ai-hero-title">摘录详情</Text>
           <Text className="ai-hero-desc">
-            正文与标签来自你的收藏；解读由模型生成，可多次重新生成直至满意。
+            正文为当前摘录；解读由模型生成，可多次重新生成直至满意。
           </Text>
         </View>
 
@@ -204,10 +202,6 @@ export default function EntryDetailPage() {
         <View className="card card-quote">
           <Text className="card-kicker">正文</Text>
           <Text className="quote-body">{content || "…"}</Text>
-          <Text className="card-kicker card-quote-tags-kicker">标签</Text>
-          <Text className="tag-line">
-            {tags.length ? tags.map((t) => t.name).join("、") : "暂无"}
-          </Text>
         </View>
 
         <View className="card card-note">
@@ -262,9 +256,11 @@ export default function EntryDetailPage() {
           <Button className="btn-icon btn-share-open" onClick={() => setPosterModalOpen(true)}>
             <Image className="btn-icon-img" src={entryDetailIcons.share} mode="aspectFit" />
           </Button>
-          <View className="btn-icon btn-icon-danger" onClick={onDelete}>
-            <Image className="btn-icon-img" src={entryDetailIcons.trash} mode="aspectFit" />
-          </View>
+          {isEntryOwner ? (
+            <View className="btn-icon btn-icon-danger" onClick={onDelete}>
+              <Image className="btn-icon-img" src={entryDetailIcons.trash} mode="aspectFit" />
+            </View>
+          ) : null}
         </View>
       </View>
 
