@@ -353,6 +353,10 @@
   background: linear-gradient(95deg, #2b9be8 0%, #38a8ff 45%, #4cb3ff 100%);
 }
 
+.btn-primary-disabled {
+  opacity: 0.55;
+}
+
 .actions-side {
   display: flex;
   flex-direction: row;

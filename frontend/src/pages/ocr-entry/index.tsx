@@ -20,7 +20,7 @@ export default function OcrEntryPage() {
       const res = await Taro.chooseMedia({
         count: 1,
         mediaType: ["image"],
-        sourceType: ["camera"],
+        sourceType: ["camera", "album"],
       });
       const path = res.tempFiles[0]?.tempFilePath;
       if (!path) return;
@@ -36,10 +36,10 @@ export default function OcrEntryPage() {
     <View className="ocr-placeholder">
       <Text className="title">用底部中间的「识别」</Text>
       <Text className="sub">
-        主入口在底部 Tab 中间「识别」：拍书页后进入添加页，会自动识别文字填入内容区（可校对）。想纯手输请到「我的」→ 手动添加金句。
+        主入口在底部 Tab 中间「识别」：可拍书页或从图库选图，进入添加页后会自动识别文字填入内容区（可校对）。想纯手输请到「我的」→ 手动添加金句。
       </Text>
       <View className="btn" onClick={() => void open()}>
-        拍书页识别
+        拍照 / 从图库选择
       </View>
       <View className="link" onClick={() => Taro.switchTab({ url: "/pages/index/index" })}>
         回收藏

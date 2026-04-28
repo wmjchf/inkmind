@@ -120,6 +120,10 @@ export default function EntryDetailPage() {
 
   const onInterpret = async () => {
     if (!id) return;
+    if (!isEntryOwner) {
+      Taro.showToast({ title: "仅作者本人可生成 AI 解读", icon: "none" });
+      return;
+    }
     try {
       await ensureLogin();
       Taro.showLoading({ title: "解读中" });
@@ -247,9 +251,12 @@ export default function EntryDetailPage() {
       </View>
 
       <View className="actions">
-        <View className="btn primary" onClick={() => void onInterpret()}>
+        <View
+          className={`btn primary ${isEntryOwner ? "" : "btn-primary-disabled"}`}
+          onClick={() => isEntryOwner && void onInterpret()}
+        >
           <Text className="btn-primary-text">
-            {interpretation ? "重新解读" : "生成解读"}
+            {isEntryOwner ? (interpretation ? "重新解读" : "生成解读") : "仅作者可生成解读"}
           </Text>
         </View>
         <View className="actions-side">

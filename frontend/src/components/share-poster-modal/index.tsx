@@ -221,6 +221,7 @@ export function SharePosterModal(props: SharePosterModalProps) {
       });
 
       await Taro.saveImageToPhotosAlbum({ filePath: res.tempFilePath });
+      onClose();
       Taro.showToast({ title: "已保存到相册", icon: "success" });
     } catch (e) {
       console.error(e);
