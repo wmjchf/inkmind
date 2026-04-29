@@ -9,6 +9,10 @@ const red = "#ff4d4f";
 const white = "#ffffff";
 
 export const entryDetailIcons = {
+  /** 自定义导航栏返回 */
+  back: svgUrl(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.9)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`
+  ),
   /** 弹层、蒙层上的关闭（白描边，适配深色背景） */
   close: svgUrl(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${white}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>`

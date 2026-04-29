@@ -1,5 +1,5 @@
 import { View, Text, Image, Button, Textarea } from "@tarojs/components";
-import Taro, { useLoad, useShareAppMessage } from "@tarojs/taro";
+import Taro, { useLoad, useReady, useShareAppMessage } from "@tarojs/taro";
 import { useEffect, useRef, useState } from "react";
 import { ensureLogin } from "../../services/auth";
 import { SharePosterModal } from "../../components/share-poster-modal";
@@ -15,6 +15,13 @@ import { entryDetailIcons } from "../../assets/entry-detail-icons";
 import "./index.scss";
 
 type SharePayload = { id: number; bookTitle: string | null; content: string };
+
+/**
+ * 胶囊（菜单按钮）下沿与自定义顶栏区域底边之间的留白（物理 px）。
+ * 若此处为 0，顶栏总高 = menuButton.bottom，底边与胶囊底边同一条线，看起来会「完全贴住」。
+ * 原生导航条与胶囊之间通常仍有空隙，故默认留一点。
+ */
+const NAV_GAP_BELOW_CAPSULE_PX = 8;
 
 export default function EntryDetailPage() {
   const [id, setId] = useState(0);
@@ -33,6 +40,16 @@ export default function EntryDetailPage() {
   const [noteSaving, setNoteSaving] = useState(false);
   /** 键盘高度（px），用于 fixed 底部弹层上移，避免遮挡输入框（需关闭 textarea adjustPosition） */
   const [noteKeyboardPx, setNoteKeyboardPx] = useState(0);
+  /**
+   * 自定义顶栏布局（px）：
+   * topTotalPx = 胶囊 bottom + NAV_GAP_BELOW_CAPSULE_PX（顶栏略长于胶囊下沿，才有「缝」）；
+   * navRowPx = topTotalPx - statusBarPx。
+   */
+  const [navLayout, setNavLayout] = useState({
+    topTotalPx: 88 + NAV_GAP_BELOW_CAPSULE_PX,
+    statusBarPx: 20,
+    navRowPx: 44 + NAV_GAP_BELOW_CAPSULE_PX,
+  });
 
   const shareRef = useRef<SharePayload>({ id: 0, bookTitle: null, content: "" });
   const latestEntryIdRef = useRef(0);
@@ -40,6 +57,21 @@ export default function EntryDetailPage() {
   useEffect(() => {
     latestEntryIdRef.current = id;
   }, [id]);
+
+  useReady(() => {
+    try {
+      const sys = Taro.getSystemInfoSync();
+      const sb = typeof sys.statusBarHeight === "number" ? sys.statusBarHeight : 20;
+      const mb = Taro.getMenuButtonBoundingClientRect();
+      const topTotalPx = mb.bottom + NAV_GAP_BELOW_CAPSULE_PX;
+      const navRowPx = Math.max(0, topTotalPx - sb);
+      setNavLayout({ topTotalPx, statusBarPx: sb, navRowPx });
+    } catch {
+      const sb = 20;
+      const navRowPx = 44 + NAV_GAP_BELOW_CAPSULE_PX;
+      setNavLayout({ topTotalPx: sb + navRowPx, statusBarPx: sb, navRowPx });
+    }
+  });
 
   useEffect(() => {
     const wxMini = (
@@ -208,8 +240,35 @@ export default function EntryDetailPage() {
     });
   };
 
+  const onNavBack = () => {
+    const pages = Taro.getCurrentPages();
+    if (pages.length > 1) {
+      void Taro.navigateBack();
+    } else {
+      void Taro.switchTab({ url: "/pages/index/index" });
+    }
+  };
+
   return (
-    <View className="page">
+    <View
+      className="page page-entry-detail"
+      style={{ paddingTop: `${navLayout.topTotalPx}px` }}
+    >
+      <View
+        className="custom-navbar"
+        style={{
+          height: `${navLayout.topTotalPx}px`,
+          paddingTop: `${navLayout.statusBarPx}px`,
+        }}
+      >
+        <View className="custom-navbar-inner" style={{ height: `${navLayout.navRowPx}px` }}>
+          <View className="custom-nav-back" onClick={onNavBack}>
+            <Image className="custom-nav-back-img" src={entryDetailIcons.back} mode="aspectFit" />
+          </View>
+          <Text className="custom-nav-title">详情</Text>
+        </View>
+      </View>
+
       <View className="page-main">
         <View className="ai-hero">
           <Text className="ai-hero-kicker">InkMind · AI</Text>

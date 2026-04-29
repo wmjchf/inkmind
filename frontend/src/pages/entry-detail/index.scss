@@ -1,3 +1,57 @@
+/* 顶栏高度用胶囊 menuButton.bottom + 底部留白；fixed 吸顶，正文单独滚动 */
+.custom-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  width: 100%;
+  box-sizing: border-box;
+  background: #ffffff;
+  border-bottom: 1rpx solid rgba(0, 0, 0, 0.08);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.custom-navbar-inner {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.custom-nav-back {
+  position: absolute;
+  left: 8rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 88rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-nav-back-img {
+  width: 44rpx;
+  height: 44rpx;
+  display: block;
+}
+
+.custom-nav-title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 34rpx;
+  font-weight: 500;
+  color: rgba(0, 0, 0, 0.9);
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
 .page {
   min-height: 100vh;
   width: 100%;
@@ -10,6 +64,18 @@
     rgba(245, 247, 250, 0.55) 48%,
     rgba(245, 251, 255, 0.92) 100%
   );
+}
+
+/* 顶部自定义导航满宽，正文仍左右留白 */
+.page-entry-detail {
+  padding-top: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.page-entry-detail .page-main {
+  padding: 24rpx 32rpx 0;
+  box-sizing: border-box;
 }
 
 .page-main {
