@@ -337,6 +337,25 @@
   margin-bottom: 0;
 }
 
+.ai-title-row {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 12rpx;
+  margin-bottom: 10rpx;
+}
+
+.ai-title-kicker {
+  margin-bottom: 0;
+}
+
+.ai-disclaimer {
+  display: inline-block;
+  font-size: 22rpx;
+  line-height: 1.45;
+  color: #b0b0b0;
+}
+
 .inter-blocks {
   width: 100%;
 }

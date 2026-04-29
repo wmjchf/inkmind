@@ -38,6 +38,7 @@ export default function EntryDetailPage() {
   const [shareWxacodePath, setShareWxacodePath] = useState("");
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
+  const [interpreting, setInterpreting] = useState(false);
   /** 键盘高度（px），用于 fixed 底部弹层上移，避免遮挡输入框（需关闭 textarea adjustPosition） */
   const [noteKeyboardPx, setNoteKeyboardPx] = useState(0);
   /**
@@ -172,21 +173,21 @@ export default function EntryDetailPage() {
   });
 
   const onInterpret = async () => {
-    if (!id) return;
+    if (!id || interpreting) return;
     if (!isEntryOwner) {
       Taro.showToast({ title: "仅作者本人可生成 AI 解读", icon: "none" });
       return;
     }
     try {
+      setInterpreting(true);
       await ensureLogin();
-      Taro.showLoading({ title: "解读中" });
       const res = await interpretEntry(id);
       setInterpretation(res.interpretation);
-      Taro.hideLoading();
     } catch (e) {
-      Taro.hideLoading();
       const msg = e instanceof Error ? e.message : "失败";
       Taro.showToast({ title: msg, icon: "none" });
+    } finally {
+      setInterpreting(false);
     }
   };
 
@@ -316,7 +317,10 @@ export default function EntryDetailPage() {
         </View>
 
         <View className="card card-ai">
-          <Text className="card-kicker">AI 解读</Text>
+          <View className="ai-title-row">
+            <Text className="card-kicker ai-title-kicker">AI 解读</Text>
+            <Text className="ai-disclaimer">内容 AI 生成，仅供参考</Text>
+          </View>
           {interpretation ? (
             <View className="inter-blocks">
               <Text className="inter-label">摘要</Text>
@@ -327,18 +331,26 @@ export default function EntryDetailPage() {
               <Text className="inter-reflect">{interpretation.reflection_question}</Text>
             </View>
           ) : (
-            <Text className="inter-placeholder">尚未生成解读，点击下方按钮。</Text>
+            <Text className="inter-placeholder">
+              {interpreting ? "AI 正在解读中，请稍候…" : "尚未生成解读，点击下方按钮。"}
+            </Text>
           )}
         </View>
       </View>
 
       <View className="actions">
         <View
-          className={`btn primary ${isEntryOwner ? "" : "btn-primary-disabled"}`}
-          onClick={() => isEntryOwner && void onInterpret()}
+          className={`btn primary ${isEntryOwner && !interpreting ? "" : "btn-primary-disabled"}`}
+          onClick={() => isEntryOwner && !interpreting && void onInterpret()}
         >
           <Text className="btn-primary-text">
-            {isEntryOwner ? (interpretation ? "重新解读" : "生成解读") : "仅作者可生成解读"}
+            {isEntryOwner
+              ? interpreting
+                ? "解读中…"
+                : interpretation
+                  ? "重新解读"
+                  : "生成解读"
+              : "仅作者可生成解读"}
           </Text>
         </View>
         <View className="actions-side">
