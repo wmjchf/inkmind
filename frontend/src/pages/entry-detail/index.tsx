@@ -31,6 +31,8 @@ export default function EntryDetailPage() {
   const [shareWxacodePath, setShareWxacodePath] = useState("");
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
+  /** 键盘高度（px），用于 fixed 底部弹层上移，避免遮挡输入框（需关闭 textarea adjustPosition） */
+  const [noteKeyboardPx, setNoteKeyboardPx] = useState(0);
 
   const shareRef = useRef<SharePayload>({ id: 0, bookTitle: null, content: "" });
   const latestEntryIdRef = useRef(0);
@@ -38,6 +40,25 @@ export default function EntryDetailPage() {
   useEffect(() => {
     latestEntryIdRef.current = id;
   }, [id]);
+
+  useEffect(() => {
+    const wxMini = (
+      globalThis as unknown as {
+        wx?: {
+          onKeyboardHeightChange?: (cb: (res: { height?: number }) => void) => void;
+          offKeyboardHeightChange?: (cb: (res: { height?: number }) => void) => void;
+        };
+      }
+    ).wx;
+    if (!wxMini?.onKeyboardHeightChange) return;
+    const handler = (res: { height?: number }) => {
+      setNoteKeyboardPx(res.height ?? 0);
+    };
+    wxMini.onKeyboardHeightChange(handler);
+    return () => {
+      wxMini.offKeyboardHeightChange?.(handler);
+    };
+  }, []);
 
   const prefetchWxacode = (entryId: number) => {
     const token = Taro.getStorageSync("accessToken") as string | undefined;
@@ -140,10 +161,12 @@ export default function EntryDetailPage() {
   const openNoteModal = () => {
     if (!isEntryOwner) return;
     setNoteDraft(userNote);
+    setNoteKeyboardPx(0);
     setNoteModalOpen(true);
   };
 
   const closeNoteModal = () => {
+    setNoteKeyboardPx(0);
     setNoteModalOpen(false);
   };
 
@@ -155,7 +178,7 @@ export default function EntryDetailPage() {
       const trimmed = noteDraft.trim().slice(0, 500);
       await updateEntry(id, { note: trimmed.length ? trimmed : null });
       setUserNote(trimmed);
-      setNoteModalOpen(false);
+      closeNoteModal();
       Taro.showToast({ title: "已保存", icon: "success" });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "保存失败";
@@ -273,7 +296,13 @@ export default function EntryDetailPage() {
 
       {noteModalOpen ? (
         <View className="note-modal-mask" onClick={closeNoteModal}>
-          <View className="note-modal-panel" onClick={(e) => e.stopPropagation()}>
+          <View
+            className="note-modal-panel"
+            style={
+              noteKeyboardPx > 0 ? { transform: `translateY(-${noteKeyboardPx}px)` } : undefined
+            }
+            onClick={(e) => e.stopPropagation()}
+          >
             <Text className="note-modal-title">编辑随记</Text>
             <Text className="note-modal-sub">最多 500 字，保存后展示在详情里</Text>
             <Textarea
@@ -281,6 +310,9 @@ export default function EntryDetailPage() {
               value={noteDraft}
               maxlength={500}
               focus
+              adjustPosition={false}
+              cursorSpacing={24}
+              showConfirmBar={false}
               onInput={(e) => setNoteDraft(e.detail.value)}
             />
             <Text className="note-modal-count">{noteDraft.length}/500</Text>

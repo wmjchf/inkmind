@@ -187,6 +187,8 @@
   background: #ffffff;
   border: 1rpx solid rgba(56, 168, 255, 0.12);
   border-bottom: none;
+  transition: transform 0.25s ease;
+  will-change: transform;
 }
 
 .note-modal-title {

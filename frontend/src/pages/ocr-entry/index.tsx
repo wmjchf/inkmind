@@ -17,10 +17,14 @@ export default function OcrEntryPage() {
 
   const open = async () => {
     try {
+      const { tapIndex } = await Taro.showActionSheet({
+        itemList: ["拍照", "从相册选择"],
+      });
+      const sourceType = tapIndex === 0 ? (["camera"] as const) : (["album"] as const);
       const res = await Taro.chooseMedia({
         count: 1,
         mediaType: ["image"],
-        sourceType: ["camera", "album"],
+        sourceType: [...sourceType],
       });
       const path = res.tempFiles[0]?.tempFilePath;
       if (!path) return;
@@ -28,7 +32,7 @@ export default function OcrEntryPage() {
         url: `/pages/add/index?localPath=${encodeURIComponent(path)}&source=ocr`,
       });
     } catch {
-      void Taro.switchTab({ url: "/pages/index/index" });
+      /* 取消菜单或选图 */
     }
   };
 

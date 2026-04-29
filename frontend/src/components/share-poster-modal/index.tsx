@@ -23,6 +23,20 @@ const CANVAS_H = 640;
 /** 仅放大导出 PNG 像素（插值），比 3 略清晰且布局稳定 */
 const EXPORT_DEST_SCALE = 4;
 
+function getApiErrMsg(e: unknown): string {
+  if (typeof e === "string") return e;
+  if (e && typeof e === "object" && "errMsg" in e) {
+    const m = (e as { errMsg?: string }).errMsg;
+    if (m != null) return String(m);
+  }
+  return "";
+}
+
+function isSaveImageAuthDeny(e: unknown): boolean {
+  const msg = getApiErrMsg(e);
+  return msg.includes("saveImageToPhotosAlbum") && msg.includes("auth deny");
+}
+
 const drawWrappedTextCenter = (
   ctx: Taro.CanvasContext,
   text: string,
@@ -172,23 +186,23 @@ export function SharePosterModal(props: SharePosterModalProps) {
       }
 
       ctx.setFillStyle("#38a8ff");
-      ctx.setFontSize(17);
-      const quoteEndY = drawWrappedTextCenter(ctx, mainQuote, CANVAS_W / 2, 100, 26, 30, 8);
-
       ctx.setFontSize(15);
+      const quoteEndY = drawWrappedTextCenter(ctx, mainQuote, CANVAS_W / 2, 100, 28, 26, 8);
+
+      ctx.setFontSize(13);
       ctx.setTextAlign("center");
-      ctx.fillText(attribution, CANVAS_W / 2, quoteEndY + 36);
+      ctx.fillText(attribution, CANVAS_W / 2, quoteEndY + 32);
       ctx.setTextAlign("left");
 
       const footerY = CANVAS_H - 200;
       ctx.setFillStyle("#38a8ff");
-      ctx.setFontSize(12);
+      ctx.setFontSize(11);
       ctx.setTextAlign("center");
       ctx.fillText("Do not go gentle into that good night.", CANVAS_W / 2, footerY);
-      ctx.setFontSize(11);
-      ctx.fillText("* · · · · · · · · · · · · *", CANVAS_W / 2, footerY + 28);
-      ctx.setFontSize(20);
-      ctx.fillText("&", CANVAS_W / 2, footerY + 58);
+      ctx.setFontSize(10);
+      ctx.fillText("* · · · · · · · · · · · · *", CANVAS_W / 2, footerY + 26);
+      ctx.setFontSize(18);
+      ctx.fillText("&", CANVAS_W / 2, footerY + 54);
       ctx.setTextAlign("left");
 
       const qrImgSide = 72;
@@ -225,7 +239,27 @@ export function SharePosterModal(props: SharePosterModalProps) {
       Taro.showToast({ title: "已保存到相册", icon: "success" });
     } catch (e) {
       console.error(e);
-      Taro.showToast({ title: "保存失败", icon: "none" });
+      if (isSaveImageAuthDeny(e)) {
+        /* openSetting 必须紧跟用户点击；不要用 await showModal 再 await openSetting，会打断手势链导致无法跳转 */
+        Taro.showModal({
+          title: "需要相册权限",
+          content: "保存海报需要开启「保存到相册」。请在设置中打开该权限后，再点一次保存。",
+          confirmText: "去设置",
+          cancelText: "取消",
+          success: (modalRes) => {
+            if (modalRes.confirm) {
+              Taro.openSetting({
+                fail: (err) => {
+                  console.error("openSetting fail", err);
+                  void Taro.showToast({ title: "无法打开设置，请稍后再试", icon: "none" });
+                },
+              });
+            }
+          },
+        });
+      } else {
+        Taro.showToast({ title: "保存失败", icon: "none" });
+      }
     } finally {
       setSaving(false);
       Taro.hideLoading();
