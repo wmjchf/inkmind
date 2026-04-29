@@ -6,18 +6,6 @@ import { createEntry } from "../../services/entries";
 import { recognizeImage } from "../../services/ocr";
 import "./index.scss";
 
-function FieldLabel(props: { title: string; required?: boolean }) {
-  const { title, required } = props;
-  return (
-    <View className="field-label-row">
-      <View className="field-label-left">
-        <Text className="label-text">{title}</Text>
-        {required ? <Text className="label-req">*</Text> : null}
-      </View>
-    </View>
-  );
-}
-
 export default function AddPage() {
   const [content, setContent] = useState("");
   const [bookTitle, setBookTitle] = useState("");
@@ -30,6 +18,7 @@ export default function AddPage() {
     const rawSrc = Array.isArray(q.source) ? q.source[0] : q.source;
     const src = rawSrc === "ocr" ? "ocr" : "manual";
     setEntrySource(src === "ocr" ? "ocr" : "manual");
+
     if (src === "ocr" || lp) {
       void Taro.setNavigationBarTitle({ title: lp ? "识别录入" : "添加收藏" });
     }
@@ -60,12 +49,12 @@ export default function AddPage() {
   const submit = async () => {
     const c = content.trim();
     if (!c) {
-      Taro.showToast({ title: "请填写或识别内容", icon: "none" });
+      Taro.showToast({ title: "请先填写摘录内容", icon: "none" });
       return;
     }
     const bt = bookTitle.trim();
     if (!bt) {
-      Taro.showToast({ title: "请填写书名", icon: "none" });
+      Taro.showToast({ title: "请先填写书名", icon: "none" });
       return;
     }
     try {
@@ -85,47 +74,34 @@ export default function AddPage() {
     }
   };
 
+  const contentPlaceholder =
+    entrySource === "ocr"
+      ? "识别结果可在此修改、删减；也可粘贴或输入内容。"
+      : "在此粘贴或输入内容。";
+
   return (
-    <View className="page">
-      <View className="page-main">
-        <View className="ai-hero">
-          <Text className="ai-hero-kicker">InkMind · AI</Text>
-          <Text className="ai-hero-title">伴你收录与整理</Text>
-          <Text className="ai-hero-desc">保存后可在详情查看 AI 解读。</Text>
-        </View>
-
-        <View className="form-card">
-          <View className="form-section">
-            <FieldLabel title="书名" required />
-            <View className="field-wrap">
-              <Input
-                className="field"
-                style={{ width: "100%", minHeight: "100rpx" }}
-                placeholder="例如：《某某》"
-                value={bookTitle}
-                onInput={(e) => setBookTitle(e.detail.value)}
-              />
-            </View>
-          </View>
-
-          <View className="form-section form-section-last">
-            <FieldLabel title="内容" required />
-            <View className="field-wrap">
-              <Textarea
-                className="field textarea"
-                placeholder={
-                  entrySource === "ocr" ? "识别结果可在此修改、删减或分段" : "粘贴或输入触动你的内容"
-                }
-                value={content}
-                onInput={(e) => setContent(e.detail.value)}
-                maxlength={5000}
-              />
-            </View>
-          </View>
-        </View>
+    <View className="page-minimal">
+      <View className="minimal-form">
+        <Input
+          className="minimal-title"
+          placeholderClass="minimal-placeholder"
+          placeholder="输入书名"
+          value={bookTitle}
+          onInput={(e) => setBookTitle(e.detail.value)}
+          maxlength={200}
+        />
+        <Textarea
+          className="minimal-body"
+          placeholderClass="minimal-placeholder"
+          placeholder={contentPlaceholder}
+          value={content}
+          onInput={(e) => setContent(e.detail.value)}
+          maxlength={5000}
+          showConfirmBar={false}
+        />
       </View>
 
-      <View className="btn-bar">
+      <View className="btn-bar btn-bar-minimal">
         <View className="btn" onClick={() => void submit()}>
           <Text className="btn-text">保存</Text>
         </View>
