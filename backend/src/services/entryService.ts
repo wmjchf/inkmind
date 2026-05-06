@@ -453,16 +453,16 @@ export async function runInterpretation(
   const chat = resolveChatCompletionConfig();
   if (chat) {
     const out = await interpretContentWithModel(content, chat, bookTitle);
-    summary = out.summary;
-    resonance = out.resonance;
-    reflection = out.reflection_question;
+    summary = out.text;
+    resonance = "";
+    reflection = "";
     provider = out.provider;
     model = out.model;
   } else {
-    summary = "句子在字面之外往往还指向一种未被说清的情绪或处境。";
-    resonance =
-      "这类句子容易被记住，通常是因为它恰好碰上了你正在经历或渴望的主题。";
-    reflection = "如果把这句话当成写给自己的便签，你会在下面补上一句什么？";
+    summary =
+      "这段话落在心上时，往往是因为它恰好碰到你正在经历、或渴望被轻轻看见的情绪。你可以在这里停一会儿，不必急着解释清楚——被一句话打动，本身就是很真实的回应。";
+    resonance = "";
+    reflection = "";
   }
 
   const [ins] = await pool.query<ResultSetHeader>(

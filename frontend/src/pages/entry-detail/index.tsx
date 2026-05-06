@@ -17,6 +17,15 @@ import "./index.scss";
 
 type SharePayload = { id: number; bookTitle: string | null; content: string };
 
+/** 新版单段存储在 summary；旧版三段合并展示 */
+function interpretationDisplayBody(it: Interpretation): string {
+  const s = it.summary.trim();
+  const r = it.resonance.trim();
+  const q = it.reflection_question.trim();
+  if (s && !r && !q) return s;
+  return [s, r, q].filter(Boolean).join("\n\n");
+}
+
 /**
  * 胶囊（菜单按钮）下沿与自定义顶栏区域底边之间的留白（物理 px）。
  * 若此处为 0，顶栏总高 = menuButton.bottom，底边与胶囊底边同一条线，看起来会「完全贴住」。
@@ -312,40 +321,56 @@ export default function EntryDetailPage() {
 
         <View className="card card-ai">
           <View className="ai-title-row">
-            <Text className="card-kicker ai-title-kicker">AI 解读</Text>
+            <Text className="card-kicker ai-title-kicker">陪伴解读</Text>
             <Text className="ai-disclaimer">内容 AI 生成，仅供参考</Text>
           </View>
           {interpretation ? (
-            <View className="inter-blocks">
-              <Text className="inter-label">摘要</Text>
-              <Text className="inter-para">{interpretation.summary}</Text>
-              <Text className="inter-label">共鸣</Text>
-              <Text className="inter-para">{interpretation.resonance}</Text>
-              <Text className="inter-label">反思</Text>
-              <Text className="inter-reflect">{interpretation.reflection_question}</Text>
+            <Text className="inter-companion">{interpretationDisplayBody(interpretation)}</Text>
+          ) : interpreting ? (
+            <View className="inter-loading">
+              <View className="inter-loading-head">
+                <View className="inter-loading-dots">
+                  <View className="inter-loading-dot" />
+                  <View className="inter-loading-dot" />
+                  <View className="inter-loading-dot" />
+                </View>
+                <Text className="inter-loading-caption">正在写给你，请稍候</Text>
+              </View>
+              <View className="inter-loading-skeleton">
+                <View className="inter-sk-line" />
+                <View className="inter-sk-line inter-sk-line-mid" />
+                <View className="inter-sk-line inter-sk-line-short" />
+              </View>
             </View>
           ) : (
-            <Text className="inter-placeholder">
-              {interpreting ? "AI 正在解读中，请稍候…" : "尚未生成解读，点击下方按钮。"}
-            </Text>
+            <Text className="inter-placeholder">还没有陪伴文字，点击下方生成一段。</Text>
           )}
         </View>
       </View>
 
       <View className="actions">
         <View
-          className={`btn primary ${isEntryOwner && !interpreting ? "" : "btn-primary-disabled"}`}
+          className={`btn primary ${!isEntryOwner ? "btn-primary-disabled" : interpreting ? "primary-loading" : ""}`}
           onClick={() => isEntryOwner && !interpreting && void onInterpret()}
         >
-          <Text className="btn-primary-text">
-            {isEntryOwner
-              ? interpreting
-                ? "解读中…"
-                : interpretation
+          {isEntryOwner && interpreting ? (
+            <View className="btn-loading-row">
+              <Text className="btn-primary-text">解读中</Text>
+              <View className="btn-loading-dots">
+                <View className="btn-loading-dot" />
+                <View className="btn-loading-dot" />
+                <View className="btn-loading-dot" />
+              </View>
+            </View>
+          ) : (
+            <Text className="btn-primary-text">
+              {isEntryOwner
+                ? interpretation
                   ? "重新解读"
                   : "生成解读"
-              : "仅作者可生成解读"}
-          </Text>
+                : "仅作者可生成解读"}
+            </Text>
+          )}
         </View>
         <View className="actions-side">
           <Button className="btn-icon btn-share-open" onClick={() => setPosterModalOpen(true)}>
