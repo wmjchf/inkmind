@@ -2,6 +2,7 @@ import { View, Text, Image, Button, Textarea } from "@tarojs/components";
 import Taro, { useLoad, useReady, useShareAppMessage } from "@tarojs/taro";
 import { useEffect, useRef, useState } from "react";
 import { ensureLogin } from "../../services/auth";
+import { requestIndexListRefresh } from "../../services/indexListRefreshFlag";
 import { SharePosterModal } from "../../components/share-poster-modal";
 import { API_BASE } from "../../config";
 import {
@@ -231,6 +232,7 @@ export default function EntryDetailPage() {
         try {
           await ensureLogin();
           await deleteEntry(id);
+          requestIndexListRefresh();
           Taro.showToast({ title: "已删除", icon: "success" });
           setTimeout(() => Taro.switchTab({ url: "/pages/index/index" }), 400);
         } catch (e) {
@@ -271,14 +273,6 @@ export default function EntryDetailPage() {
       </View>
 
       <View className="page-main">
-        <View className="ai-hero">
-          <Text className="ai-hero-kicker">InkMind · AI</Text>
-          <Text className="ai-hero-title">摘录详情</Text>
-          <Text className="ai-hero-desc">
-            正文为当前摘录；解读由模型生成，可多次重新生成直至满意。
-          </Text>
-        </View>
-
         {bookTitle ? (
           <View className="card card-book">
             <Text className="card-kicker">书名</Text>

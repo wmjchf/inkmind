@@ -3,6 +3,7 @@ import Taro, { useLoad } from "@tarojs/taro";
 import { useRef, useState } from "react";
 import { ensureLogin } from "../../services/auth";
 import { createEntry } from "../../services/entries";
+import { requestIndexListRefresh } from "../../services/indexListRefreshFlag";
 import { recognizeImage } from "../../services/ocr";
 import "./index.scss";
 
@@ -10,7 +11,10 @@ export default function AddPage() {
   const [content, setContent] = useState("");
   const [bookTitle, setBookTitle] = useState("");
   const [entrySource, setEntrySource] = useState<"manual" | "ocr">("manual");
+  const [saving, setSaving] = useState(false);
   const ocrStartedRef = useRef(false);
+  /** 同步锁：网络慢时连点不会并发多次 createEntry */
+  const submitLockRef = useRef(false);
 
   useLoad((q) => {
     const rawPath = Array.isArray(q.localPath) ? q.localPath[0] : q.localPath;
@@ -47,6 +51,7 @@ export default function AddPage() {
   });
 
   const submit = async () => {
+    if (submitLockRef.current) return;
     const c = content.trim();
     if (!c) {
       Taro.showToast({ title: "请先填写摘录内容", icon: "none" });
@@ -57,6 +62,8 @@ export default function AddPage() {
       Taro.showToast({ title: "请先填写书名", icon: "none" });
       return;
     }
+    submitLockRef.current = true;
+    setSaving(true);
     try {
       await ensureLogin();
       const res = await createEntry({
@@ -64,13 +71,17 @@ export default function AddPage() {
         bookTitle: bt,
         sourceType: entrySource,
       });
+      requestIndexListRefresh();
       Taro.showToast({ title: "已保存", icon: "success" });
       setTimeout(() => {
         Taro.redirectTo({ url: `/pages/entry-detail/index?id=${res.id}` });
       }, 400);
+      /* 成功：保持锁定至跳转离开本页，避免 toast 等待期间再次提交 */
     } catch (e) {
       const msg = e instanceof Error ? e.message : "保存失败";
       Taro.showToast({ title: msg, icon: "none" });
+      submitLockRef.current = false;
+      setSaving(false);
     }
   };
 
@@ -102,8 +113,11 @@ export default function AddPage() {
       </View>
 
       <View className="btn-bar btn-bar-minimal">
-        <View className="btn" onClick={() => void submit()}>
-          <Text className="btn-text">保存</Text>
+        <View
+          className={`btn ${saving ? "btn-disabled" : ""}`}
+          onClick={() => !saving && void submit()}
+        >
+          <Text className="btn-text">{saving ? "保存中…" : "保存"}</Text>
         </View>
       </View>
     </View>

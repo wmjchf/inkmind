@@ -1,0 +1,190 @@
+.page-search {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx 24rpx;
+  background: linear-gradient(
+    165deg,
+    rgba(240, 249, 255, 0.98) 0%,
+    rgba(245, 247, 250, 0.55) 48%,
+    rgba(245, 251, 255, 0.92) 100%
+  );
+}
+
+.search-bar-wrap {
+  flex-shrink: 0;
+  margin-bottom: 20rpx;
+}
+
+.search-input-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+  padding: 18rpx 24rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1rpx solid rgba(56, 168, 255, 0.18);
+  box-sizing: border-box;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  height: 56rpx;
+  font-size: 28rpx;
+  color: #333333;
+}
+
+.search-input::after {
+  border: none;
+}
+
+.list-scroll-search {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 24rpx;
+  padding: 28rpx 30rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid rgba(56, 168, 255, 0.14);
+  box-sizing: border-box;
+}
+
+.card-text {
+  font-size: 30rpx;
+  line-height: 1.6;
+  margin-bottom: 14rpx;
+  color: #333333;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+
+.card-meta {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: baseline;
+  gap: 0 8rpx;
+  line-height: 1.45;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.card-book {
+  flex-shrink: 0;
+  max-width: 100%;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #38a8ff;
+  letter-spacing: 0.03em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card.entry-card {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 24rpx;
+  padding: 34rpx 32rpx 28rpx 48rpx;
+  border-radius: 22rpx;
+  background: linear-gradient(
+    152deg,
+    rgba(255, 255, 255, 0.99) 0%,
+    rgba(252, 253, 255, 1) 42%,
+    rgba(247, 250, 254, 0.97) 100%
+  );
+  border: 1rpx solid rgba(45, 75, 110, 0.07);
+  box-shadow:
+    0 1rpx 0 rgba(255, 255, 255, 0.92) inset,
+    0 2rpx 8rpx rgba(20, 45, 75, 0.03),
+    0 10rpx 28rpx rgba(22, 55, 90, 0.05),
+    0 20rpx 48rpx rgba(22, 60, 95, 0.035);
+}
+
+.card.entry-card::before {
+  content: "";
+  position: absolute;
+  left: 22rpx;
+  top: 36rpx;
+  bottom: 32rpx;
+  width: 5rpx;
+  border-radius: 8rpx;
+  background: linear-gradient(
+    180deg,
+    rgba(94, 200, 255, 0.95) 0%,
+    #38a8ff 42%,
+    rgba(56, 168, 255, 0.28) 100%
+  );
+  box-shadow: 0 0 12rpx rgba(56, 168, 255, 0.18);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.entry-card-fold {
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 2;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 46rpx 46rpx 0;
+  border-color: transparent rgba(228, 236, 246, 0.96) transparent transparent;
+  pointer-events: none;
+}
+
+.entry-card .card-text {
+  position: relative;
+  z-index: 1;
+  font-size: 30rpx;
+  line-height: 1.72;
+  margin-bottom: 22rpx;
+  padding-right: 40rpx;
+  color: #2b2b2b;
+  letter-spacing: 0.04em;
+  font-weight: 400;
+}
+
+.entry-card .card-meta {
+  position: relative;
+  z-index: 1;
+  padding-top: 18rpx;
+  border-top: 1rpx solid rgba(15, 35, 55, 0.06);
+}
+
+.entry-card .card-book {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #38a8ff;
+  letter-spacing: 0.04em;
+  max-width: 100%;
+}
+
+.empty-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 32rpx;
+  box-sizing: border-box;
+}
+
+.empty-search-text {
+  font-size: 26rpx;
+  color: #999999;
+  text-align: center;
+  line-height: 1.5;
+}

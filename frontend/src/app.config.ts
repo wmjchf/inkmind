@@ -1,6 +1,7 @@
 export default {
   pages: [
     "pages/index/index",
+    "pages/search/index",
     "pages/ocr-entry/index",
     "pages/profile/index",
     "pages/feedback/index",

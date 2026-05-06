@@ -18,8 +18,12 @@ export default function OcrEntryPage() {
   const open = async () => {
     try {
       const { tapIndex } = await Taro.showActionSheet({
-        itemList: ["拍照", "从相册选择"],
+        itemList: ["拍照", "从相册选择", "手动添加"],
       });
+      if (tapIndex === 2) {
+        void Taro.navigateTo({ url: "/pages/add/index?source=manual" });
+        return;
+      }
       const sourceType = tapIndex === 0 ? (["camera"] as const) : (["album"] as const);
       const res = await Taro.chooseMedia({
         count: 1,
@@ -40,10 +44,10 @@ export default function OcrEntryPage() {
     <View className="ocr-placeholder">
       <Text className="title">用底部中间的「识别」</Text>
       <Text className="sub">
-        主入口在底部 Tab 中间「识别」：可拍书页或从图库选图，进入添加页后会自动识别文字填入内容区（可校对）。想纯手输请到「我的」→ 手动添加金句。
+        主入口在底部 Tab 中间「识别」：可选拍照、从图库选图（OCR 填入正文），或「手动添加」直接输入。也可在此使用下方按钮。
       </Text>
       <View className="btn" onClick={() => void open()}>
-        拍照 / 从图库选择
+        拍照 / 图库 / 手动添加
       </View>
       <View className="link" onClick={() => Taro.switchTab({ url: "/pages/index/index" })}>
         回收藏

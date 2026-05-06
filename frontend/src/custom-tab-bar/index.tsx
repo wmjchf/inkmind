@@ -29,12 +29,16 @@ export default class CustomTabBar extends Component<unknown, State> {
     void Taro.switchTab({ url: "/pages/profile/index" });
   };
 
-  /** 主入口「识别」：拍照或相册选图 → 添加页 OCR */
-  openCamera = async () => {
+  /** 中间「识别」：拍照 / 相册 OCR / 手动添加 */
+  openAddCenter = async () => {
     try {
       const { tapIndex } = await Taro.showActionSheet({
-        itemList: ["拍照", "从相册选择"],
+        itemList: ["拍照", "从相册选择", "手动添加"],
       });
+      if (tapIndex === 2) {
+        void Taro.navigateTo({ url: "/pages/add/index?source=manual" });
+        return;
+      }
       const sourceType = tapIndex === 0 ? (["camera"] as const) : (["album"] as const);
       const res = await Taro.chooseMedia({
         count: 1,
@@ -64,7 +68,7 @@ export default class CustomTabBar extends Component<unknown, State> {
         </View>
 
         <View className="tab-center-wrap">
-          <View className="fab" onClick={() => void this.openCamera()}>
+          <View className="fab" onClick={() => void this.openAddCenter()}>
             <Image className="fab-icon" src={iconCameraFab} mode="aspectFit" />
           </View>
         </View>

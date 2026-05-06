@@ -1,9 +1,11 @@
 import { View, Text, Image, ScrollView } from "@tarojs/components";
-import Taro, { useDidShow, usePullDownRefresh, useReady } from "@tarojs/taro";
+import Taro, { useDidShow, useLoad, usePullDownRefresh, useReady } from "@tarojs/taro";
 import { useCallback, useRef, useState } from "react";
+import { indexIcons } from "../../assets/index-icons";
 import { listEmptyBook } from "../../assets/list-empty-icons";
 import { ensureLogin } from "../../services/auth";
 import { fetchEntries, fetchEntryBookTitles, type EntryItem } from "../../services/entries";
+import { consumeIndexListRefreshRequest } from "../../services/indexListRefreshFlag";
 import "./index.scss";
 
 /** 列表展示用书名号《》；若已有成对《》则不再重复包裹 */
@@ -91,6 +93,11 @@ export default function IndexPage() {
     await loadEntries(titles, nextIdx);
   }, [loadBookTitles, loadEntries]);
 
+  /** 首次进入本页时加载；切 Tab 回来不请求，仅下拉刷新 */
+  useLoad(() => {
+    void refresh();
+  });
+
   useReady(() => {
     const page = Taro.getCurrentInstance().page;
     if (!page) return;
@@ -104,7 +111,9 @@ export default function IndexPage() {
       const tabBar = Taro.getTabBar<{ setSelected: (n: number) => void }>(page);
       tabBar?.setSelected?.(0);
     }
-    void refresh();
+    if (consumeIndexListRefreshRequest()) {
+      void refresh();
+    }
   });
 
   usePullDownRefresh(() => {
@@ -117,12 +126,12 @@ export default function IndexPage() {
 
   return (
     <View className="page">
-      <View className="ai-hero">
-        <Text className="ai-hero-kicker">InkMind · AI</Text>
-        <Text className="ai-hero-title">我的收藏</Text>
-        <Text className="ai-hero-desc">
-          摘录一目了然；详情里可生成 AI 解读。有书名时可在下方筛选，下拉页面可刷新列表。
-        </Text>
+      <View
+        className="search-entry"
+        onClick={() => Taro.navigateTo({ url: "/pages/search/index" })}
+      >
+        <Image className="search-entry-icon" src={indexIcons.search} mode="aspectFit" />
+        <Text className="search-entry-placeholder">搜索收藏内容</Text>
       </View>
 
       {chipLabels.length > 0 ? (
