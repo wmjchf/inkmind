@@ -1,8 +1,15 @@
-import type { ChatCompletionConfig } from "../lib/aiChatConfig";
+import {
+  interpretCompletionRequestShell,
+  type ChatCompletionConfig,
+} from "../lib/aiChatConfig";
 import { HttpError } from "../lib/httpError";
 
 /** 一段话陪伴解读，略放宽上限 */
 const MAX_BODY = 3500;
+/** 摘录送入模型的长度上限（过长会拖慢推理，与模型名无关） */
+const MAX_QUOTE_CHARS = 2400;
+/** 限制输出长度，缩短尾延迟（仍由同一 AI_MODEL 生成） */
+const INTERPRET_MAX_TOKENS = 720;
 
 function clip(s: string, max: number): string {
   const t = s.trim();
@@ -36,8 +43,10 @@ export async function interpretContentWithModel(
     : "";
 
   const body = {
+    ...interpretCompletionRequestShell(provider),
     model,
-    temperature: 0.62,
+    temperature: 0.55,
+    max_tokens: INTERPRET_MAX_TOKENS,
     response_format: { type: "json_object" as const },
     messages: [
       {
@@ -52,7 +61,7 @@ export async function interpretContentWithModel(
       },
       {
         role: "user" as const,
-        content: `${bookBlock}用户收藏的内容：\n${trimmed.slice(0, 4000)}\n\n请输出 {"text":"……"}`,
+        content: `${bookBlock}用户收藏的内容：\n${trimmed.slice(0, MAX_QUOTE_CHARS)}\n\n请输出 {"text":"……"}`,
       },
     ],
   };

@@ -321,7 +321,7 @@ export default function EntryDetailPage() {
 
         <View className="card card-ai">
           <View className="ai-title-row">
-            <Text className="card-kicker ai-title-kicker">陪伴解读</Text>
+            <Text className="card-kicker ai-title-kicker">AI解读</Text>
             <Text className="ai-disclaimer">内容 AI 生成，仅供参考</Text>
           </View>
           {interpretation ? (
@@ -334,7 +334,7 @@ export default function EntryDetailPage() {
                   <View className="inter-loading-dot" />
                   <View className="inter-loading-dot" />
                 </View>
-                <Text className="inter-loading-caption">正在写给你，请稍候</Text>
+                <Text className="inter-loading-caption">正在生成解读，请稍候</Text>
               </View>
               <View className="inter-loading-skeleton">
                 <View className="inter-sk-line" />

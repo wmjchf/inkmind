@@ -36,3 +36,20 @@ export function resolveChatCompletionConfig(): ChatCompletionConfig | null {
   }
   return null;
 }
+
+/**
+ * 陪伴解读专用 Chat Completions 附加字段：**不改 model 名**，只关掉解读用不到的链路，减少延迟与多余推理。
+ * - DashScope：关闭思考链（enable_thinking），非流式必须显式 false。
+ * - OpenAI 兼容：禁止走工具调用（tool_choice: none）。
+ */
+export function interpretCompletionRequestShell(
+  provider: ChatCompletionConfig["provider"]
+): Record<string, unknown> {
+  const shell: Record<string, unknown> = { stream: false };
+  if (provider === "dashscope") {
+    shell.enable_thinking = false;
+    return shell;
+  }
+  shell.tool_choice = "none";
+  return shell;
+}
