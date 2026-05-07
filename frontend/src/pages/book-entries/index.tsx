@@ -23,6 +23,18 @@ function navTitleFromBook(raw: string): string {
   return `${s.slice(0, 14)}…`;
 }
 
+/** 摘录创建时间：年月日 + 时分 */
+function formatEntryDateTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = d.getMonth() + 1;
+  const day = d.getDate();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${y}年${m}月${day}日 ${hh}:${mm}`;
+}
+
 export default function BookEntriesPage() {
   const [items, setItems] = useState<EntryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,6 +108,7 @@ export default function BookEntriesPage() {
             <View key={it.id} className="card entry-card" onClick={() => goDetail(it.id)}>
               <View className="entry-card-fold" />
               <View className="card-text">{it.content}</View>
+              <Text className="entry-card-time">{formatEntryDateTime(it.created_at)}</Text>
             </View>
           ))}
         </ScrollView>
