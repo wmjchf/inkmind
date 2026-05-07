@@ -1,10 +1,10 @@
 import { View, Text, Image, ScrollView } from "@tarojs/components";
 import Taro, { useDidShow, useLoad, usePullDownRefresh, useReady } from "@tarojs/taro";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { indexIcons } from "../../assets/index-icons";
 import { listEmptyBook } from "../../assets/list-empty-icons";
 import { ensureLogin } from "../../services/auth";
-import { fetchEntries, fetchEntryBookTitles, type EntryItem } from "../../services/entries";
+import { fetchBookShelf, type BookShelfItem } from "../../services/entries";
 import { consumeIndexListRefreshRequest } from "../../services/indexListRefreshFlag";
 import "./index.scss";
 
@@ -19,61 +19,27 @@ function formatBookTitleWithGuillemets(raw: string | null | undefined): string |
   return `《${inner}》`;
 }
 
+function formatShelfDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
+/** 列表预览：折叠空白，便于 line-clamp 在小程序里稳定生效 */
+function excerptPreviewText(s: string): string {
+  return s.replace(/\s+/g, " ").trim();
+}
+
 export default function IndexPage() {
-  const [items, setItems] = useState<EntryItem[]>([]);
-  const [bookTitles, setBookTitles] = useState<string[]>([]);
-  const [selectedChipIndex, setSelectedChipIndex] = useState(0);
+  const [shelfItems, setShelfItems] = useState<BookShelfItem[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const bookTitlesRef = useRef<string[]>([]);
-  const selectedChipIndexRef = useRef(0);
-
-  const chipLabels = bookTitles.length > 0 ? ["全部", ...bookTitles] : [];
-
-  const loadBookTitles = useCallback(async (): Promise<string[]> => {
-    await ensureLogin();
-    const { items } = await fetchEntryBookTitles();
-    bookTitlesRef.current = items;
-    setBookTitles(items);
-    return items;
-  }, []);
-
-  const loadEntries = useCallback(async (titles: string[], index: number) => {
-    if (titles.length === 0) {
-      selectedChipIndexRef.current = 0;
-      setSelectedChipIndex(0);
-      setLoading(true);
-      try {
-        await ensureLogin();
-        const listRes = await fetchEntries({
-          page: 1,
-          pageSize: 50,
-        });
-        setItems(listRes.items);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : "加载失败";
-        Taro.showToast({ title: msg, icon: "none" });
-      } finally {
-        setLoading(false);
-        Taro.stopPullDownRefresh();
-      }
-      return;
-    }
-
-    const range = ["全部", ...titles];
-    const safeIndex = Math.min(Math.max(0, index), Math.max(0, range.length - 1));
-    const bookTitle = safeIndex > 0 ? range[safeIndex] : undefined;
-    selectedChipIndexRef.current = safeIndex;
-    setSelectedChipIndex(safeIndex);
+  const refresh = useCallback(async () => {
     setLoading(true);
     try {
       await ensureLogin();
-      const listRes = await fetchEntries({
-        page: 1,
-        pageSize: 50,
-        bookTitle,
-      });
-      setItems(listRes.items);
+      const { items } = await fetchBookShelf();
+      setShelfItems(items);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "加载失败";
       Taro.showToast({ title: msg, icon: "none" });
@@ -83,17 +49,6 @@ export default function IndexPage() {
     }
   }, []);
 
-  const refresh = useCallback(async () => {
-    const titles = await loadBookTitles();
-    if (titles.length === 0) {
-      await loadEntries([], 0);
-      return;
-    }
-    const nextIdx = Math.min(selectedChipIndexRef.current, titles.length);
-    await loadEntries(titles, nextIdx);
-  }, [loadBookTitles, loadEntries]);
-
-  /** 首次进入本页时加载；切 Tab 回来不请求，仅下拉刷新 */
   useLoad(() => {
     void refresh();
   });
@@ -120,12 +75,17 @@ export default function IndexPage() {
     void refresh();
   });
 
-  const goDetail = (id: number) => {
-    Taro.navigateTo({ url: `/pages/entry-detail/index?id=${id}` });
+  const openBook = (rawTitle: string) => {
+    const q = encodeURIComponent(rawTitle);
+    void Taro.navigateTo({ url: `/pages/book-entries/index?title=${q}` });
+  };
+
+  const openEntryDetail = (entryId: number) => {
+    void Taro.navigateTo({ url: `/pages/entry-detail/index?id=${entryId}` });
   };
 
   return (
-    <View className="page">
+    <View className="page page-bookshelf">
       <View
         className="search-entry"
         onClick={() => Taro.navigateTo({ url: "/pages/search/index" })}
@@ -134,40 +94,39 @@ export default function IndexPage() {
         <Text className="search-entry-placeholder">搜索收藏内容</Text>
       </View>
 
-      {chipLabels.length > 0 ? (
-        <View className="filter-wrap">
-          <ScrollView className="tag-scroll" scrollX showScrollbar={false} enableFlex>
-            <View className="tag-scroll-inner">
-              {chipLabels.map((name, i) => (
-                <View
-                  key={i === 0 ? "__all__" : `${i}-${name}`}
-                  className={`book-tag ${i === selectedChipIndex ? "on" : ""}`}
-                  onClick={() => void loadEntries(bookTitlesRef.current, i)}
-                >
-                  <Text className="book-tag-text">{name}</Text>
+      {shelfItems.length > 0 ? (
+        <ScrollView className="bookshelf-scroll" scrollY enhanced showScrollbar={false}>
+          <View className="shelf-list">
+            {shelfItems.map((row) => {
+              const raw = row.book_title;
+              const display = formatBookTitleWithGuillemets(raw) ?? raw;
+              const dateLabel = formatShelfDate(row.latest_entry.created_at);
+              return (
+                <View key={raw} className="shelf-card">
+                  <View
+                    className="shelf-card-title-row"
+                    hoverClass="shelf-card-title-row--pressed"
+                    hoverStayTime={70}
+                    onClick={() => openBook(raw)}
+                  >
+                    <Text className="shelf-card-title">{display}</Text>
+                    <Text className="shelf-card-title-action">全部摘录 ›</Text>
+                  </View>
+                  <View
+                    className="shelf-card-body"
+                    onClick={() => openEntryDetail(row.latest_entry.id)}
+                  >
+                    <Text className="shelf-card-excerpt">
+                      {excerptPreviewText(row.latest_entry.content)}
+                    </Text>
+                    <Text className="shelf-card-meta">
+                      {dateLabel ? `${dateLabel} · ` : ""}最近摘录
+                    </Text>
+                  </View>
                 </View>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-      ) : null}
-
-      {items.length > 0 ? (
-        <ScrollView className="list-scroll" scrollY>
-          {items.map((it) => {
-            const bookDisplay = formatBookTitleWithGuillemets(it.book_title);
-            return (
-            <View key={it.id} className="card entry-card" onClick={() => goDetail(it.id)}>
-              <View className="entry-card-fold" />
-              <View className="card-text">{it.content}</View>
-              {bookDisplay ? (
-                <View className="card-meta">
-                  <Text className="card-book">{bookDisplay}</Text>
-                </View>
-              ) : null}
-            </View>
-            );
-          })}
+              );
+            })}
+          </View>
         </ScrollView>
       ) : (
         <View className="main-flex">
@@ -177,7 +136,7 @@ export default function IndexPage() {
             <View className="empty empty-centered">
               <Image className="empty-book" src={listEmptyBook} mode="aspectFit" />
               <View className="empty-hint">
-                <Text className="empty-hint-text">拍书页后收藏</Text>
+                <Text className="empty-hint-text">暂无书目，添加收藏后会按书名出现在这里</Text>
               </View>
             </View>
           )}

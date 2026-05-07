@@ -1,8 +1,8 @@
-import { View, Text, Input, Textarea } from "@tarojs/components";
-import Taro, { useLoad } from "@tarojs/taro";
-import { useRef, useState } from "react";
+import { View, Text, Input, Textarea, Picker } from "@tarojs/components";
+import Taro, { useDidShow, useLoad } from "@tarojs/taro";
+import { useCallback, useRef, useState } from "react";
 import { ensureLogin } from "../../services/auth";
-import { createEntry } from "../../services/entries";
+import { createEntry, fetchEntryBookTitles } from "../../services/entries";
 import { requestIndexListRefresh } from "../../services/indexListRefreshFlag";
 import { recognizeImage } from "../../services/ocr";
 import "./index.scss";
@@ -10,13 +10,25 @@ import "./index.scss";
 export default function AddPage() {
   const [content, setContent] = useState("");
   const [bookTitle, setBookTitle] = useState("");
+  const [existingBookTitles, setExistingBookTitles] = useState<string[]>([]);
   const [entrySource, setEntrySource] = useState<"manual" | "ocr">("manual");
   const [saving, setSaving] = useState(false);
   const ocrStartedRef = useRef(false);
   /** 同步锁：网络慢时连点不会并发多次 createEntry */
   const submitLockRef = useRef(false);
 
+  const loadExistingBookTitles = useCallback(async () => {
+    try {
+      await ensureLogin();
+      const { items } = await fetchEntryBookTitles();
+      setExistingBookTitles(items);
+    } catch {
+      /* 未登录等：仍可手动输入书名 */
+    }
+  }, []);
+
   useLoad((q) => {
+    void loadExistingBookTitles();
     const rawPath = Array.isArray(q.localPath) ? q.localPath[0] : q.localPath;
     const lp = typeof rawPath === "string" ? decodeURIComponent(rawPath) : "";
     const rawSrc = Array.isArray(q.source) ? q.source[0] : q.source;
@@ -48,6 +60,10 @@ export default function AddPage() {
         Taro.hideLoading();
       }
     })();
+  });
+
+  useDidShow(() => {
+    void loadExistingBookTitles();
   });
 
   const submit = async () => {
@@ -93,14 +109,35 @@ export default function AddPage() {
   return (
     <View className="page-minimal">
       <View className="minimal-form">
-        <Input
-          className="minimal-title"
-          placeholderClass="minimal-placeholder"
-          placeholder="输入书名"
-          value={bookTitle}
-          onInput={(e) => setBookTitle(e.detail.value)}
-          maxlength={200}
-        />
+        <View className="minimal-title-row">
+          <Input
+            className="minimal-title-input"
+            placeholderClass="minimal-placeholder"
+            placeholder="输入或选择书名"
+            value={bookTitle}
+            onInput={(e) => setBookTitle(e.detail.value)}
+            maxlength={200}
+          />
+          {existingBookTitles.length > 0 ? (
+            <Picker
+              mode="selector"
+              range={existingBookTitles}
+              onChange={(e) => {
+                const i = Number(e.detail.value);
+                const t = existingBookTitles[i];
+                if (typeof t === "string") setBookTitle(t);
+              }}
+            >
+              <View
+                className="minimal-title-picker"
+                hoverClass="minimal-title-picker--pressed"
+                hoverStayTime={70}
+              >
+                <Text className="minimal-title-picker-text">选书</Text>
+              </View>
+            </Picker>
+          ) : null}
+        </View>
         <Textarea
           className="minimal-body"
           placeholderClass="minimal-placeholder"

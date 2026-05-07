@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveChatCompletionConfig = resolveChatCompletionConfig;
+exports.interpretCompletionRequestShell = interpretCompletionRequestShell;
 /** 打标签与 AI 解读共用：`AI_MODEL` 优先，其次兼容旧名 `AI_TAG_MODEL`。 */
 function resolveModelName() {
     return process.env.AI_MODEL?.trim() || process.env.AI_TAG_MODEL?.trim() || "";
@@ -25,4 +26,18 @@ function resolveChatCompletionConfig() {
         return { apiKey: openai, baseUrl, model, provider: "openai" };
     }
     return null;
+}
+/**
+ * 陪伴解读专用 Chat Completions 附加字段：**不改 model 名**，只关掉解读用不到的链路，减少延迟与多余推理。
+ * - DashScope：关闭思考链（enable_thinking），非流式必须显式 false。
+ * - OpenAI 兼容：禁止走工具调用（tool_choice: none）。
+ */
+function interpretCompletionRequestShell(provider) {
+    const shell = { stream: false };
+    if (provider === "dashscope") {
+        shell.enable_thinking = false;
+        return shell;
+    }
+    shell.tool_choice = "none";
+    return shell;
 }

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.listDistinctBookTitles = listDistinctBookTitles;
+exports.listBookShelfWithLatestEntry = listBookShelfWithLatestEntry;
 exports.listEntries = listEntries;
 exports.getEntryDetail = getEntryDetail;
 exports.createEntry = createEntry;
@@ -35,6 +36,28 @@ async function listDistinctBookTitles(userId) {
        AND e.book_title IS NOT NULL AND TRIM(e.book_title) <> ''
      ORDER BY e.book_title ASC`, { userId });
     return rows.map((r) => String(r.t));
+}
+async function listBookShelfWithLatestEntry(userId) {
+    const [rows] = await db_1.pool.query(`SELECT x.id AS id, x.content AS content, x.created_at AS created_at, x.book_title AS book_title
+     FROM (
+       SELECT e.id, e.content, e.created_at, e.book_title,
+              ROW_NUMBER() OVER (
+                PARTITION BY e.book_title ORDER BY e.created_at DESC, e.id DESC
+              ) AS rn
+       FROM entries e
+       WHERE e.user_id = :userId AND e.is_deleted = 0
+         AND e.book_title IS NOT NULL AND TRIM(e.book_title) <> ''
+     ) x
+     WHERE x.rn = 1
+     ORDER BY x.created_at DESC`, { userId });
+    return rows.map((r) => ({
+        book_title: String(r.book_title),
+        latest_entry: {
+            id: Number(r.id),
+            content: String(r.content),
+            created_at: r.created_at,
+        },
+    }));
 }
 async function listEntries(userId, opts) {
     const offset = (opts.page - 1) * opts.pageSize;
@@ -305,17 +328,17 @@ async function runInterpretation(userId, entryId) {
     const chat = (0, aiChatConfig_1.resolveChatCompletionConfig)();
     if (chat) {
         const out = await (0, aiInterpret_1.interpretContentWithModel)(content, chat, bookTitle);
-        summary = out.summary;
-        resonance = out.resonance;
-        reflection = out.reflection_question;
+        summary = out.text;
+        resonance = "";
+        reflection = "";
         provider = out.provider;
         model = out.model;
     }
     else {
-        summary = "句子在字面之外往往还指向一种未被说清的情绪或处境。";
-        resonance =
-            "这类句子容易被记住，通常是因为它恰好碰上了你正在经历或渴望的主题。";
-        reflection = "如果把这句话当成写给自己的便签，你会在下面补上一句什么？";
+        summary =
+            "从摘录本身能确定的信息有限。可依字面先概括其命题或判断，再区分：哪些是文内明确写出的，哪些需要结合全书或语境才能进一步讨论。未配置大模型时此为占位说明。";
+        resonance = "";
+        reflection = "";
     }
     const [ins] = await db_1.pool.query(`INSERT INTO ai_interpretations
      (entry_id, user_id, summary, resonance, reflection_question, provider, model)

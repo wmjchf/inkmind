@@ -44,6 +44,20 @@ export async function fetchEntryBookTitles() {
   return apiRequest<{ items: string[] }>({ url: "/entries/book-titles" });
 }
 
+export type BookShelfItem = {
+  book_title: string;
+  latest_entry: {
+    id: number;
+    content: string;
+    created_at: string;
+  };
+};
+
+/** 首页：每本书 + 该书下最新一条摘录 */
+export async function fetchBookShelf() {
+  return apiRequest<{ items: BookShelfItem[] }>({ url: "/entries/book-shelf" });
+}
+
 export async function fetchTags() {
   return apiRequest<{ items: Tag[] }>({ url: "/tags" });
 }

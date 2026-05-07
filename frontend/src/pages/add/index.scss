@@ -11,11 +11,20 @@
   box-sizing: border-box;
 }
 
-.minimal-title {
-  display: block;
-  width: 100%;
+.minimal-title-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
   box-sizing: border-box;
-  /* 小程序 Input 部分机型对 min-height 不敏感，用 height 保证可点区域与视觉高度 */
+}
+
+.minimal-title-input {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  box-sizing: border-box;
   height: 128rpx;
   min-height: 128rpx;
   padding: 0;
@@ -26,11 +35,34 @@
   background: transparent;
   border: none;
   outline: none;
-  margin-bottom: 16rpx;
 }
 
-.minimal-title::after {
+.minimal-title-input::after {
   border: none;
+}
+
+.minimal-title-picker {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  background: rgba(56, 168, 255, 0.12);
+  border: 1rpx solid rgba(56, 168, 255, 0.35);
+  box-sizing: border-box;
+}
+
+.minimal-title-picker--pressed {
+  opacity: 0.72;
+}
+
+.minimal-title-picker-text {
+  font-size: 22rpx;
+  font-weight: 600;
+  color: #38a8ff;
+  letter-spacing: 0.04em;
 }
 
 .minimal-body {

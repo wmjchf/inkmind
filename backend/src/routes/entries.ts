@@ -3,6 +3,7 @@ import { asyncHandler, requireAuth, type AuthedRequest } from "../middleware/req
 import {
   listEntries,
   listDistinctBookTitles,
+  listBookShelfWithLatestEntry,
   getEntryDetail,
   createEntry,
   updateEntry,
@@ -72,6 +73,15 @@ entriesRouter.get(
   asyncHandler(async (req, res) => {
     const userId = (req as AuthedRequest).userId;
     const items = await listDistinctBookTitles(userId);
+    res.json({ items });
+  })
+);
+
+entriesRouter.get(
+  "/book-shelf",
+  asyncHandler(async (req, res) => {
+    const userId = (req as AuthedRequest).userId;
+    const items = await listBookShelfWithLatestEntry(userId);
     res.json({ items });
   })
 );

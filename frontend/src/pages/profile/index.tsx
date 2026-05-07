@@ -59,7 +59,7 @@ export default function ProfilePage() {
     <View className="page">
       {/* 账户（会员档位 / 用量）区块暂时隐藏；恢复时需再接 fetchMe + me state + 原 card */}
 
-      <View className="stats-header">
+      {/* <View className="stats-header">
         <View className="stats-row">
           <View className="stat-card">
             <View className="stat-card-head">
@@ -76,6 +76,20 @@ export default function ProfilePage() {
             <Text className="stat-value stat-value-hero">
               {stats?.entriesWithInterpretation ?? "—"}
             </Text>
+          </View>
+        </View>
+      </View> */}
+
+      <View
+        className="card card-year-summary card-year-summary--disabled"
+        onClick={() => Taro.showToast({ title: "敬请期待", icon: "none" })}
+      >
+        <View className="year-summary-head">
+          <Image className="year-summary-icon" src={profileIcons.chart} mode="aspectFit" />
+          <View className="year-summary-copy">
+            <Text className="year-summary-badge">年度</Text>
+            <Text className="year-summary-title">年度总结</Text>
+            <View className="year-summary-sub">回顾这一年的阅读与摘录</View>
           </View>
         </View>
       </View>

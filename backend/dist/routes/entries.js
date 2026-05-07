@@ -50,6 +50,11 @@ exports.entriesRouter.get("/book-titles", (0, requireAuth_1.asyncHandler)(async 
     const items = await (0, entryService_1.listDistinctBookTitles)(userId);
     res.json({ items });
 }));
+exports.entriesRouter.get("/book-shelf", (0, requireAuth_1.asyncHandler)(async (req, res) => {
+    const userId = req.userId;
+    const items = await (0, entryService_1.listBookShelfWithLatestEntry)(userId);
+    res.json({ items });
+}));
 exports.entriesRouter.post("/", (0, requireAuth_1.asyncHandler)(async (req, res) => {
     const userId = req.userId;
     const body = req.body || {};

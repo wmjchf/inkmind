@@ -15,14 +15,19 @@ exports.statsRouter.get("/summary", (0, requireAuth_1.asyncHandler)(async (req, 
     const [interpRows] = await db_1.pool.query(`SELECT COUNT(DISTINCT ai.entry_id) AS c
        FROM ai_interpretations ai
        JOIN entries e ON e.id = ai.entry_id AND e.user_id = :userId AND e.is_deleted = 0`, { userId });
+    const [interpCountRows] = await db_1.pool.query(`SELECT COUNT(*) AS c
+       FROM ai_interpretations ai
+       INNER JOIN entries e ON e.id = ai.entry_id AND e.user_id = :userId AND e.is_deleted = 0`, { userId });
     const totalEntries = Number(totalRows[0]?.c || 0);
     const entriesLast7d = Number(weekRows[0]?.c || 0);
     const entriesWithInterpretation = Number(interpRows[0]?.c || 0);
+    const interpretationCount = Number(interpCountRows[0]?.c || 0);
     const interpretationRate = totalEntries === 0 ? 0 : Math.round((entriesWithInterpretation / totalEntries) * 1000) / 1000;
     res.json({
         totalEntries,
         entriesLast7d,
         entriesWithInterpretation,
+        interpretationCount,
         interpretationRate,
     });
 }));

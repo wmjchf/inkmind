@@ -64,6 +64,42 @@ export async function listDistinctBookTitles(userId: number): Promise<string[]> 
   return rows.map((r) => String(r.t));
 }
 
+/** 首页书架：每本书一条，取该书下最新创建的一条摘录 */
+export type BookShelfListItem = {
+  book_title: string;
+  latest_entry: {
+    id: number;
+    content: string;
+    created_at: Date;
+  };
+};
+
+export async function listBookShelfWithLatestEntry(userId: number): Promise<BookShelfListItem[]> {
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT x.id AS id, x.content AS content, x.created_at AS created_at, x.book_title AS book_title
+     FROM (
+       SELECT e.id, e.content, e.created_at, e.book_title,
+              ROW_NUMBER() OVER (
+                PARTITION BY e.book_title ORDER BY e.created_at DESC, e.id DESC
+              ) AS rn
+       FROM entries e
+       WHERE e.user_id = :userId AND e.is_deleted = 0
+         AND e.book_title IS NOT NULL AND TRIM(e.book_title) <> ''
+     ) x
+     WHERE x.rn = 1
+     ORDER BY x.created_at DESC`,
+    { userId }
+  );
+  return rows.map((r) => ({
+    book_title: String(r.book_title),
+    latest_entry: {
+      id: Number(r.id),
+      content: String(r.content),
+      created_at: r.created_at as Date,
+    },
+  }));
+}
+
 export async function listEntries(
   userId: number,
   opts: { page: number; pageSize: number; q?: string; tagId?: number; bookTitle?: string }
@@ -460,7 +496,7 @@ export async function runInterpretation(
     model = out.model;
   } else {
     summary =
-      "这段话落在心上时，往往是因为它恰好碰到你正在经历、或渴望被轻轻看见的情绪。你可以在这里停一会儿，不必急着解释清楚——被一句话打动，本身就是很真实的回应。";
+      "从摘录本身能确定的信息有限。可依字面先概括其命题或判断，再区分：哪些是文内明确写出的，哪些需要结合全书或语境才能进一步讨论。未配置大模型时此为占位说明。";
     resonance = "";
     reflection = "";
   }
