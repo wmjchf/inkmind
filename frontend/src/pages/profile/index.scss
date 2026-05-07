@@ -11,6 +11,57 @@
   );
 }
 
+/* 顶部数据：左右两块，每块内上标签、下数字 */
+.stats-header {
+  width: 100%;
+  margin-bottom: 24rpx;
+  box-sizing: border-box;
+}
+
+.stats-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 20rpx;
+}
+
+.stat-card {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16rpx;
+  padding: 28rpx 24rpx;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 24rpx;
+  border: 1rpx solid rgba(56, 168, 255, 0.18);
+  box-shadow: 0 4rpx 20rpx rgba(56, 168, 255, 0.06);
+}
+
+.stat-card-head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10rpx;
+  width: 100%;
+  min-width: 0;
+}
+
+.stat-card-icon {
+  width: 32rpx;
+  height: 32rpx;
+  flex-shrink: 0;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  font-weight: 500;
+  color: #888888;
+  line-height: 1.35;
+}
+
 .card {
   width: 100%;
   box-sizing: border-box;
@@ -21,58 +72,27 @@
   border: 1rpx solid rgba(56, 168, 255, 0.14);
 }
 
-.card-kicker {
-  display: block;
-  font-size: 22rpx;
-  font-weight: 600;
+/* 数据数字：等宽偏仪表盘；头部略放大 */
+.stat-value {
+  font-size: 36rpx;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.06em;
   color: #38a8ff;
-  letter-spacing: 0.08em;
-  margin-bottom: 20rpx;
+  font-family:
+    ui-monospace,
+    "SF Mono",
+    "Menlo",
+    Monaco,
+    Consolas,
+    "Liberation Mono",
+    "Courier New",
+    monospace;
 }
 
-.card-kicker-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 12rpx;
-  margin-bottom: 20rpx;
-}
-
-.card-kicker-row .card-kicker {
-  margin-bottom: 0;
-}
-
-.card-kicker-icon {
-  width: 36rpx;
-  height: 36rpx;
-  flex-shrink: 0;
-}
-
-.row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16rpx;
-  font-size: 28rpx;
-  color: #333333;
-}
-
-.row:last-child {
-  margin-bottom: 0;
-}
-
-.row-left {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 12rpx;
-  min-width: 0;
-}
-
-.row-icon {
-  width: 36rpx;
-  height: 36rpx;
-  flex-shrink: 0;
+.stat-value-hero {
+  font-size: 44rpx;
+  width: 100%;
 }
 
 .muted {

@@ -15,6 +15,9 @@ export async function fetchStats() {
   return apiRequest<{
     totalEntries: number;
     entriesLast7d: number;
+    entriesWithInterpretation: number;
+    /** 累计 AI 解读生成次数（含同一条重新解读） */
+    interpretationCount: number;
     interpretationRate: number;
   }>({ url: "/stats/summary" });
 }

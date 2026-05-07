@@ -11,15 +11,17 @@ import "./index.scss";
 export default function ProfilePage() {
   const [stats, setStats] = useState<{
     totalEntries: number;
-    entriesLast7d: number;
-    interpretationRate: number;
+    entriesWithInterpretation: number;
   } | null>(null);
 
   const load = async () => {
     try {
       await ensureLogin();
       const s = await fetchStats();
-      setStats(s);
+      setStats({
+        totalEntries: s.totalEntries,
+        entriesWithInterpretation: s.entriesWithInterpretation,
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "加载失败";
       Taro.showToast({ title: msg, icon: "none" });
@@ -57,6 +59,27 @@ export default function ProfilePage() {
     <View className="page">
       {/* 账户（会员档位 / 用量）区块暂时隐藏；恢复时需再接 fetchMe + me state + 原 card */}
 
+      <View className="stats-header">
+        <View className="stats-row">
+          <View className="stat-card">
+            <View className="stat-card-head">
+              <Image className="stat-card-icon" src={profileIcons.book} mode="aspectFit" />
+              <Text className="stat-label">总收藏</Text>
+            </View>
+            <Text className="stat-value stat-value-hero">{stats?.totalEntries ?? "—"}</Text>
+          </View>
+          <View className="stat-card">
+            <View className="stat-card-head">
+              <Image className="stat-card-icon" src={profileIcons.percent} mode="aspectFit" />
+              <Text className="stat-label">文章解读</Text>
+            </View>
+            <Text className="stat-value stat-value-hero">
+              {stats?.entriesWithInterpretation ?? "—"}
+            </Text>
+          </View>
+        </View>
+      </View>
+
       <View className="card card-daily" onClick={() => void daily()}>
         <View className="daily-head">
           <Image className="daily-icon" src={dailyReviewIcon} mode="aspectFit" />
@@ -79,34 +102,6 @@ export default function ProfilePage() {
             <Text className="action-title">意见反馈</Text>
             <View className="muted">遇到问题或有产品建议，告诉我们</View>
           </View>
-        </View>
-      </View>
-
-      <View className="card">
-        <View className="card-kicker-row">
-          <Image className="card-kicker-icon" src={profileIcons.chart} mode="aspectFit" />
-          <Text className="card-kicker">数据</Text>
-        </View>
-        <View className="row">
-          <View className="row-left">
-            <Image className="row-icon" src={profileIcons.book} mode="aspectFit" />
-            <Text>总收藏</Text>
-          </View>
-          <Text>{stats?.totalEntries ?? "—"}</Text>
-        </View>
-        <View className="row">
-          <View className="row-left">
-            <Image className="row-icon" src={profileIcons.calendar} mode="aspectFit" />
-            <Text>近 7 日新增</Text>
-          </View>
-          <Text>{stats?.entriesLast7d ?? "—"}</Text>
-        </View>
-        <View className="row">
-          <View className="row-left">
-            <Image className="row-icon" src={profileIcons.percent} mode="aspectFit" />
-            <Text>解读覆盖率</Text>
-          </View>
-          <Text>{stats != null ? `${Math.round(stats.interpretationRate * 100)}%` : "—"}</Text>
         </View>
       </View>
     </View>
