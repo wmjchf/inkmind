@@ -1,7 +1,6 @@
 export default {
   pages: [
     "pages/index/index",
-    "pages/book-entries/index",
     "pages/search/index",
     "pages/ocr-entry/index",
     "pages/profile/index",
@@ -17,7 +16,7 @@ export default {
   window: {
     backgroundTextStyle: "dark",
     navigationBarBackgroundColor: "#ffffff",
-    navigationBarTitleText: "InkMind",
+    navigationBarTitleText: "读书笔记AI",
     navigationBarTextStyle: "black",
     backgroundColor: "#f5f7fa",
   },

@@ -103,11 +103,6 @@ export default function IndexPage() {
     void Taro.navigateTo({ url: `/pages/entry-detail/index?id=${entryId}` });
   };
 
-  const openBookEntries = (rawTitle: string) => {
-    const q = encodeURIComponent(rawTitle);
-    void Taro.navigateTo({ url: `/pages/book-entries/index?title=${q}` });
-  };
-
   const hasBooks = bookTitles.length > 0;
   const showListScroll = hasBooks || entries.length > 0;
 
@@ -152,11 +147,6 @@ export default function IndexPage() {
           <ScrollView className="entries-scroll" scrollY enhanced showScrollbar={false}>
             <View className="entries-section-head">
               <Text className="entries-section-title">收藏</Text>
-              {selectedBookTitle ? (
-                <Text className="entries-section-link" onClick={() => openBookEntries(selectedBookTitle)}>
-                  本书全部 ›
-                </Text>
-              ) : null}
             </View>
 
             {entries.length > 0 ? (

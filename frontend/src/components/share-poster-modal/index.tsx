@@ -113,10 +113,10 @@ export function SharePosterModal(props: SharePosterModalProps) {
   /** 小程序码本地临时路径；失败时为空，用网页二维码兜底 */
   const [wxacodePath, setWxacodePath] = useState("");
 
-  const mainQuote = content.trim() || "在 InkMind，记录触动你的句子。";
+  const mainQuote = content.trim() || "用读书笔记AI，记下触动你的句子。";
   const attribution = bookTitle?.trim()
     ? `——《${bookTitle.trim()}》`
-    : "—— InkMind";
+    : "—— 读书笔记AI";
   const base = SHARE_BASE_URL.replace(/\/$/, "");
   const shareUrl = `${base}/pages/entry-detail/index?id=${entryId}`;
   const webQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`;

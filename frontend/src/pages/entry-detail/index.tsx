@@ -120,7 +120,7 @@ export default function EntryDetailPage() {
     const { id: sid, bookTitle: bt, content: c } = shareRef.current;
     const path = `/pages/entry-detail/index?id=${sid}`;
     const t = bt?.trim();
-    let title = "InkMind 摘录";
+    let title = "读书笔记AI·摘录";
     if (t) title = `「${t}」`;
     else {
       const raw = c.trim();
