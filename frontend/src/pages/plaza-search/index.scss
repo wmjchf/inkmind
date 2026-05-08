@@ -1,0 +1,129 @@
+.page-plaza-search {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx 24rpx;
+  background: linear-gradient(
+    165deg,
+    rgba(240, 249, 255, 0.98) 0%,
+    rgba(245, 247, 250, 0.55) 48%,
+    rgba(245, 251, 255, 0.92) 100%
+  );
+}
+
+.search-bar-wrap {
+  flex-shrink: 0;
+  margin-bottom: 20rpx;
+}
+
+.search-input-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+  padding: 18rpx 24rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1rpx solid rgba(56, 168, 255, 0.18);
+  box-sizing: border-box;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  height: 56rpx;
+  font-size: 28rpx;
+  color: #333333;
+}
+
+.search-input::after {
+  border: none;
+}
+
+.list-scroll-plaza-search {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.plaza-search-card {
+  box-sizing: border-box;
+  background: #ffffff;
+  border-radius: 20rpx;
+  padding: 24rpx 28rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid rgba(0, 0, 0, 0.06);
+}
+
+.plaza-author {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.plaza-avatar {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #e8f4ff;
+}
+
+.plaza-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(56, 168, 255, 0.25), rgba(56, 168, 255, 0.08));
+}
+
+.plaza-avatar-letter {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #38a8ff;
+}
+
+.plaza-name {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #333333;
+}
+
+.plaza-book {
+  display: block;
+  font-size: 24rpx;
+  color: #888888;
+  margin-bottom: 12rpx;
+}
+
+.card-text {
+  font-size: 30rpx;
+  line-height: 1.65;
+  color: #333333;
+}
+
+.plaza-time {
+  display: block;
+  margin-top: 16rpx;
+  font-size: 22rpx;
+  color: #bbbbbb;
+}
+
+.empty-plaza-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 32rpx;
+  box-sizing: border-box;
+}
+
+.empty-plaza-search-text {
+  font-size: 26rpx;
+  color: #999999;
+  text-align: center;
+  line-height: 1.5;
+}

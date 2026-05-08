@@ -21,7 +21,7 @@ export default class CustomTabBar extends Component<unknown, State> {
 
   switchLeft = () => {
     this.setState({ selected: 0 });
-    void Taro.switchTab({ url: "/pages/index/index" });
+    void Taro.switchTab({ url: "/pages/plaza/index" });
   };
 
   switchRight = () => {
@@ -61,10 +61,10 @@ export default class CustomTabBar extends Component<unknown, State> {
         <View className="tab" onClick={this.switchLeft}>
           <Image
             className="tab-icon"
-            src={selected === 0 ? tabIcons.bookOn : tabIcons.bookOff}
+            src={selected === 0 ? tabIcons.plazaOn : tabIcons.plazaOff}
             mode="aspectFit"
           />
-          <Text className={`tab-text ${selected === 0 ? "on" : ""}`}>收藏</Text>
+          <Text className={`tab-text ${selected === 0 ? "on" : ""}`}>广场</Text>
         </View>
 
         <View className="tab-center-wrap">

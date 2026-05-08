@@ -3,7 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.listDistinctBookTitles = listDistinctBookTitles;
 exports.listBookShelfWithLatestEntry = listBookShelfWithLatestEntry;
 exports.listEntries = listEntries;
+exports.listPlazaFeed = listPlazaFeed;
 exports.getEntryDetail = getEntryDetail;
+exports.toggleEntryLike = toggleEntryLike;
+exports.toggleEntrySave = toggleEntrySave;
 exports.createEntry = createEntry;
 exports.updateEntry = updateEntry;
 exports.softDeleteEntry = softDeleteEntry;
@@ -78,7 +81,7 @@ async function listEntries(userId, opts) {
     }
     const [countRows] = await db_1.pool.query(`SELECT COUNT(*) AS c FROM entries e WHERE ${where}`, params);
     const total = Number(countRows[0]?.c || 0);
-    const [rows] = await db_1.pool.query(`SELECT e.id, e.content, e.source_type, e.book_title, e.note, e.created_at
+    const [rows] = await db_1.pool.query(`SELECT e.id, e.content, e.source_type, e.book_title, e.note, e.created_at, e.visibility
      FROM entries e
      WHERE ${where}
      ORDER BY e.created_at DESC
@@ -104,17 +107,56 @@ async function listEntries(userId, opts) {
         book_title: r.book_title,
         note: r.note,
         created_at: r.created_at,
+        visibility: r.visibility,
         tags: tagMap.get(r.id) || [],
     }));
     return { items, total };
 }
+async function listPlazaFeed(opts) {
+    const offset = (opts.page - 1) * opts.pageSize;
+    const qTrim = opts.q?.trim().slice(0, 200);
+    let whereExtra = "";
+    const params = {
+        limit: opts.pageSize,
+        offset,
+    };
+    if (qTrim) {
+        whereExtra = " AND (e.content LIKE :likeQ OR e.book_title LIKE :likeQ)";
+        params.likeQ = `%${qTrim}%`;
+    }
+    const [countRows] = await db_1.pool.query(`SELECT COUNT(*) AS c FROM entries e
+     WHERE e.is_deleted = 0 AND e.visibility = 'public'${whereExtra}`, params);
+    const total = Number(countRows[0]?.c || 0);
+    const [rows] = await db_1.pool.query(`SELECT e.id, e.content, e.book_title, e.created_at,
+            u.nickname AS author_nickname, u.avatar_url AS author_avatar_url
+     FROM entries e
+     INNER JOIN users u ON u.id = e.user_id
+     WHERE e.is_deleted = 0 AND e.visibility = 'public'${whereExtra}
+     ORDER BY COALESCE(e.published_at, e.created_at) DESC, e.id DESC
+     LIMIT :limit OFFSET :offset`, params);
+    const items = rows.map((r) => ({
+        id: Number(r.id),
+        content: String(r.content),
+        book_title: r.book_title != null ? String(r.book_title) : null,
+        created_at: r.created_at,
+        author: {
+            nickname: r.author_nickname != null ? String(r.author_nickname) : null,
+            avatarUrl: r.author_avatar_url != null ? String(r.author_avatar_url) : null,
+        },
+    }));
+    return { items, total };
+}
 async function getEntryDetail(userId, entryId) {
-    const [rows] = await db_1.pool.query(`SELECT id, user_id, content, source_type, source_image_url, book_title, note, created_at, updated_at
+    const [rows] = await db_1.pool.query(`SELECT id, user_id, content, source_type, source_image_url, book_title, note, created_at, updated_at, visibility, like_count
      FROM entries WHERE id = :id AND is_deleted = 0`, { id: entryId });
     if (!rows.length)
         return null;
     const r = rows[0];
     const is_owner = Number(r.user_id) === userId;
+    const visibility = r.visibility;
+    if (!is_owner && visibility !== "public") {
+        return null;
+    }
     const [tagRows] = await db_1.pool.query(`SELECT t.id, t.name FROM entry_tags et JOIN tags t ON t.id = et.tag_id WHERE et.entry_id = :id`, { id: entryId });
     const tags = tagRows.map((t) => ({ id: t.id, name: t.name }));
     const [interp] = await db_1.pool.query(`SELECT id, summary, resonance, reflection_question, created_at
@@ -128,6 +170,17 @@ async function getEntryDetail(userId, entryId) {
             created_at: interp[0].created_at,
         }
         : null;
+    let interaction;
+    if (!is_owner && visibility === "public") {
+        const likeCount = Number(r.like_count ?? 0);
+        const [lkRows] = await db_1.pool.query(`SELECT 1 FROM entry_likes WHERE user_id = :userId AND entry_id = :entryId LIMIT 1`, { userId, entryId });
+        const [svRows] = await db_1.pool.query(`SELECT 1 FROM entry_saves WHERE user_id = :userId AND entry_id = :entryId LIMIT 1`, { userId, entryId });
+        interaction = {
+            likeCount,
+            likedByMe: lkRows.length > 0,
+            savedByMe: svRows.length > 0,
+        };
+    }
     return {
         entry: {
             id: r.id,
@@ -137,12 +190,96 @@ async function getEntryDetail(userId, entryId) {
             note: r.note,
             created_at: r.created_at,
             updated_at: r.updated_at,
+            visibility,
             source_image_url: r.source_image_url,
             tags,
         },
         interpretation,
         is_owner,
+        interaction,
     };
+}
+/** 点赞/取消赞（仅公开摘录，且不能赞自己的） */
+async function toggleEntryLike(actorUserId, entryId) {
+    const conn = await db_1.pool.getConnection();
+    try {
+        await conn.beginTransaction();
+        const [erows] = await conn.query(`SELECT id, user_id, visibility, like_count FROM entries WHERE id = :id AND is_deleted = 0 FOR UPDATE`, { id: entryId });
+        if (!erows.length)
+            throw new httpError_1.HttpError(404, "NOT_FOUND", "收藏不存在");
+        const ownerId = Number(erows[0].user_id);
+        const vis = erows[0].visibility;
+        if (vis !== "public") {
+            throw new httpError_1.HttpError(403, "FORBIDDEN", "仅公开摘录可点赞");
+        }
+        if (ownerId === actorUserId) {
+            throw new httpError_1.HttpError(400, "BAD_REQUEST", "不能给自己的摘录点赞");
+        }
+        const [existing] = await conn.query(`SELECT 1 FROM entry_likes WHERE user_id = :userId AND entry_id = :entryId`, { userId: actorUserId, entryId });
+        const hadLike = existing.length > 0;
+        if (hadLike) {
+            await conn.query(`DELETE FROM entry_likes WHERE user_id = :userId AND entry_id = :entryId`, {
+                userId: actorUserId,
+                entryId,
+            });
+            await conn.query(`UPDATE entries SET like_count = GREATEST(like_count - 1, 0) WHERE id = :id`, { id: entryId });
+        }
+        else {
+            await conn.query(`INSERT INTO entry_likes (user_id, entry_id) VALUES (:userId, :entryId)`, { userId: actorUserId, entryId });
+            await conn.query(`UPDATE entries SET like_count = like_count + 1 WHERE id = :id`, {
+                id: entryId,
+            });
+        }
+        const [countRows] = await conn.query(`SELECT like_count FROM entries WHERE id = :id`, { id: entryId });
+        const likeCount = Number(countRows[0]?.like_count ?? 0);
+        await conn.commit();
+        return { liked: !hadLike, likeCount };
+    }
+    catch (e) {
+        await conn.rollback();
+        throw e;
+    }
+    finally {
+        conn.release();
+    }
+}
+/** 收藏/取消收藏他人公开摘录（书签） */
+async function toggleEntrySave(actorUserId, entryId) {
+    const conn = await db_1.pool.getConnection();
+    try {
+        await conn.beginTransaction();
+        const [erows] = await conn.query(`SELECT id, user_id, visibility FROM entries WHERE id = :id AND is_deleted = 0 FOR UPDATE`, { id: entryId });
+        if (!erows.length)
+            throw new httpError_1.HttpError(404, "NOT_FOUND", "收藏不存在");
+        const ownerId = Number(erows[0].user_id);
+        const vis = erows[0].visibility;
+        if (vis !== "public") {
+            throw new httpError_1.HttpError(403, "FORBIDDEN", "仅公开摘录可收藏");
+        }
+        if (ownerId === actorUserId) {
+            throw new httpError_1.HttpError(400, "BAD_REQUEST", "不能收藏自己的摘录");
+        }
+        const [existing] = await conn.query(`SELECT 1 FROM entry_saves WHERE user_id = :userId AND entry_id = :entryId`, { userId: actorUserId, entryId });
+        const hadSave = existing.length > 0;
+        if (hadSave) {
+            await conn.query(`DELETE FROM entry_saves WHERE user_id = :userId AND entry_id = :entryId`, {
+                userId: actorUserId,
+                entryId,
+            });
+        }
+        else {
+            await conn.query(`INSERT INTO entry_saves (user_id, entry_id) VALUES (:userId, :entryId)`, { userId: actorUserId, entryId });
+        }
+        await conn.commit();
+        return { saved: !hadSave };
+    }
+    catch (e) {
+        await conn.rollback();
+        throw e;
+    }
+    finally {
+        conn.release();
+    }
 }
 async function createEntry(userId, body) {
     const content = body.content?.trim();
@@ -217,6 +354,17 @@ async function updateEntry(userId, entryId, body) {
             const n = raw.trim().slice(0, 500);
             fields.push("note = :note");
             params.note = n.length ? n : null;
+        }
+        if (body.visibility !== undefined) {
+            const v = body.visibility;
+            if (v !== "private" && v !== "public" && v !== "unlisted") {
+                throw new httpError_1.HttpError(400, "VALIDATION", "visibility 无效");
+            }
+            fields.push("visibility = :visibility");
+            params.visibility = v;
+            if (v === "public") {
+                fields.push("published_at = COALESCE(published_at, CURRENT_TIMESTAMP(3))");
+            }
         }
         if (fields.length) {
             await conn.query(`UPDATE entries SET ${fields.join(", ")} WHERE id = :id AND user_id = :userId`, params);

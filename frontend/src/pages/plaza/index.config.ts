@@ -1,5 +1,6 @@
 export default {
-  navigationBarTitleText: "搜索收藏",
+  navigationBarTitleText: "广场",
   navigationBarBackgroundColor: "#ffffff",
   navigationBarTextStyle: "black",
+  enablePullDownRefresh: true,
 };

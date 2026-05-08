@@ -8,6 +8,8 @@ import { suggestTagsFromContent } from "./aiTagSuggest";
 
 export type EntrySource = "manual" | "ocr";
 
+export type EntryVisibility = "private" | "public" | "unlisted";
+
 export type EntryListItem = {
   id: number;
   content: string;
@@ -15,7 +17,17 @@ export type EntryListItem = {
   book_title: string | null;
   note: string | null;
   created_at: Date;
+  visibility: EntryVisibility;
   tags: { id: number; name: string }[];
+};
+
+/** 广场动态列表（仅 visibility=public） */
+export type PlazaFeedItem = {
+  id: number;
+  content: string;
+  book_title: string | null;
+  created_at: Date;
+  author: { nickname: string | null; avatarUrl: string | null };
 };
 
 export type Interpretation = {
@@ -129,7 +141,7 @@ export async function listEntries(
   const total = Number(countRows[0]?.c || 0);
 
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT e.id, e.content, e.source_type, e.book_title, e.note, e.created_at
+    `SELECT e.id, e.content, e.source_type, e.book_title, e.note, e.created_at, e.visibility
      FROM entries e
      WHERE ${where}
      ORDER BY e.created_at DESC
@@ -162,11 +174,68 @@ export async function listEntries(
     book_title: r.book_title,
     note: r.note,
     created_at: r.created_at,
+    visibility: r.visibility as EntryVisibility,
     tags: tagMap.get(r.id as number) || [],
   }));
 
   return { items, total };
 }
+
+export async function listPlazaFeed(opts: {
+  page: number;
+  pageSize: number;
+  /** 模糊匹配正文或书名 */
+  q?: string;
+}): Promise<{ items: PlazaFeedItem[]; total: number }> {
+  const offset = (opts.page - 1) * opts.pageSize;
+  const qTrim = opts.q?.trim().slice(0, 200);
+  let whereExtra = "";
+  const params: Record<string, string | number> = {
+    limit: opts.pageSize,
+    offset,
+  };
+  if (qTrim) {
+    whereExtra = " AND (e.content LIKE :likeQ OR e.book_title LIKE :likeQ)";
+    params.likeQ = `%${qTrim}%`;
+  }
+
+  const [countRows] = await pool.query<RowDataPacket[]>(
+    `SELECT COUNT(*) AS c FROM entries e
+     WHERE e.is_deleted = 0 AND e.visibility = 'public'${whereExtra}`,
+    params
+  );
+  const total = Number(countRows[0]?.c || 0);
+
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT e.id, e.content, e.book_title, e.created_at,
+            u.nickname AS author_nickname, u.avatar_url AS author_avatar_url
+     FROM entries e
+     INNER JOIN users u ON u.id = e.user_id
+     WHERE e.is_deleted = 0 AND e.visibility = 'public'${whereExtra}
+     ORDER BY COALESCE(e.published_at, e.created_at) DESC, e.id DESC
+     LIMIT :limit OFFSET :offset`,
+    params
+  );
+
+  const items: PlazaFeedItem[] = rows.map((r) => ({
+    id: Number(r.id),
+    content: String(r.content),
+    book_title: r.book_title != null ? String(r.book_title) : null,
+    created_at: r.created_at as Date,
+    author: {
+      nickname: r.author_nickname != null ? String(r.author_nickname) : null,
+      avatarUrl: r.author_avatar_url != null ? String(r.author_avatar_url) : null,
+    },
+  }));
+
+  return { items, total };
+}
+
+export type EntryInteraction = {
+  likeCount: number;
+  likedByMe: boolean;
+  savedByMe: boolean;
+};
 
 export async function getEntryDetail(
   userId: number,
@@ -176,9 +245,11 @@ export async function getEntryDetail(
   interpretation: Interpretation | null;
   /** 当前登录用户是否为该条摘录的作者（他人通过分享进入时为 false） */
   is_owner: boolean;
+  /** 仅浏览他人公开摘录时有：点赞数与个人点赞/收藏状态 */
+  interaction?: EntryInteraction;
 } | null> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT id, user_id, content, source_type, source_image_url, book_title, note, created_at, updated_at
+    `SELECT id, user_id, content, source_type, source_image_url, book_title, note, created_at, updated_at, visibility, like_count
      FROM entries WHERE id = :id AND is_deleted = 0`,
     { id: entryId }
   );
@@ -186,6 +257,10 @@ export async function getEntryDetail(
 
   const r = rows[0];
   const is_owner = Number(r.user_id) === userId;
+  const visibility = r.visibility as EntryVisibility;
+  if (!is_owner && visibility !== "public") {
+    return null;
+  }
   const [tagRows] = await pool.query<RowDataPacket[]>(
     `SELECT t.id, t.name FROM entry_tags et JOIN tags t ON t.id = et.tag_id WHERE et.entry_id = :id`,
     { id: entryId }
@@ -208,6 +283,24 @@ export async function getEntryDetail(
       }
     : null;
 
+  let interaction: EntryInteraction | undefined;
+  if (!is_owner && visibility === "public") {
+    const likeCount = Number(r.like_count ?? 0);
+    const [lkRows] = await pool.query<RowDataPacket[]>(
+      `SELECT 1 FROM entry_likes WHERE user_id = :userId AND entry_id = :entryId LIMIT 1`,
+      { userId, entryId }
+    );
+    const [svRows] = await pool.query<RowDataPacket[]>(
+      `SELECT 1 FROM entry_saves WHERE user_id = :userId AND entry_id = :entryId LIMIT 1`,
+      { userId, entryId }
+    );
+    interaction = {
+      likeCount,
+      likedByMe: lkRows.length > 0,
+      savedByMe: svRows.length > 0,
+    };
+  }
+
   return {
     entry: {
       id: r.id,
@@ -217,12 +310,126 @@ export async function getEntryDetail(
       note: r.note,
       created_at: r.created_at,
       updated_at: r.updated_at,
+      visibility,
       source_image_url: r.source_image_url,
       tags,
     },
     interpretation,
     is_owner,
+    interaction,
   };
+}
+
+/** 点赞/取消赞（仅公开摘录，且不能赞自己的） */
+export async function toggleEntryLike(
+  actorUserId: number,
+  entryId: number
+): Promise<{ liked: boolean; likeCount: number }> {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [erows] = await conn.query<RowDataPacket[]>(
+      `SELECT id, user_id, visibility, like_count FROM entries WHERE id = :id AND is_deleted = 0 FOR UPDATE`,
+      { id: entryId }
+    );
+    if (!erows.length) throw new HttpError(404, "NOT_FOUND", "收藏不存在");
+    const ownerId = Number(erows[0].user_id);
+    const vis = erows[0].visibility as EntryVisibility;
+    if (vis !== "public") {
+      throw new HttpError(403, "FORBIDDEN", "仅公开摘录可点赞");
+    }
+    if (ownerId === actorUserId) {
+      throw new HttpError(400, "BAD_REQUEST", "不能给自己的摘录点赞");
+    }
+
+    const [existing] = await conn.query<RowDataPacket[]>(
+      `SELECT 1 FROM entry_likes WHERE user_id = :userId AND entry_id = :entryId`,
+      { userId: actorUserId, entryId }
+    );
+    const hadLike = existing.length > 0;
+
+    if (hadLike) {
+      await conn.query(`DELETE FROM entry_likes WHERE user_id = :userId AND entry_id = :entryId`, {
+        userId: actorUserId,
+        entryId,
+      });
+      await conn.query(
+        `UPDATE entries SET like_count = GREATEST(like_count - 1, 0) WHERE id = :id`,
+        { id: entryId }
+      );
+    } else {
+      await conn.query(
+        `INSERT INTO entry_likes (user_id, entry_id) VALUES (:userId, :entryId)`,
+        { userId: actorUserId, entryId }
+      );
+      await conn.query(`UPDATE entries SET like_count = like_count + 1 WHERE id = :id`, {
+        id: entryId,
+      });
+    }
+
+    const [countRows] = await conn.query<RowDataPacket[]>(
+      `SELECT like_count FROM entries WHERE id = :id`,
+      { id: entryId }
+    );
+    const likeCount = Number(countRows[0]?.like_count ?? 0);
+
+    await conn.commit();
+    return { liked: !hadLike, likeCount };
+  } catch (e) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
+}
+
+/** 收藏/取消收藏他人公开摘录（书签） */
+export async function toggleEntrySave(actorUserId: number, entryId: number): Promise<{ saved: boolean }> {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [erows] = await conn.query<RowDataPacket[]>(
+      `SELECT id, user_id, visibility FROM entries WHERE id = :id AND is_deleted = 0 FOR UPDATE`,
+      { id: entryId }
+    );
+    if (!erows.length) throw new HttpError(404, "NOT_FOUND", "收藏不存在");
+    const ownerId = Number(erows[0].user_id);
+    const vis = erows[0].visibility as EntryVisibility;
+    if (vis !== "public") {
+      throw new HttpError(403, "FORBIDDEN", "仅公开摘录可收藏");
+    }
+    if (ownerId === actorUserId) {
+      throw new HttpError(400, "BAD_REQUEST", "不能收藏自己的摘录");
+    }
+
+    const [existing] = await conn.query<RowDataPacket[]>(
+      `SELECT 1 FROM entry_saves WHERE user_id = :userId AND entry_id = :entryId`,
+      { userId: actorUserId, entryId }
+    );
+    const hadSave = existing.length > 0;
+
+    if (hadSave) {
+      await conn.query(`DELETE FROM entry_saves WHERE user_id = :userId AND entry_id = :entryId`, {
+        userId: actorUserId,
+        entryId,
+      });
+    } else {
+      await conn.query(
+        `INSERT INTO entry_saves (user_id, entry_id) VALUES (:userId, :entryId)`,
+        { userId: actorUserId, entryId }
+      );
+    }
+
+    await conn.commit();
+    return { saved: !hadSave };
+  } catch (e) {
+    await conn.rollback();
+    throw e;
+  } finally {
+    conn.release();
+  }
 }
 
 export async function createEntry(
@@ -298,6 +505,7 @@ export async function updateEntry(
     bookTitle?: string | null;
     note?: string | null;
     tags?: string[];
+    visibility?: EntryVisibility;
   }
 ): Promise<boolean> {
   const conn = await pool.getConnection();
@@ -333,6 +541,17 @@ export async function updateEntry(
       const n = raw.trim().slice(0, 500);
       fields.push("note = :note");
       params.note = n.length ? n : null;
+    }
+    if (body.visibility !== undefined) {
+      const v = body.visibility;
+      if (v !== "private" && v !== "public" && v !== "unlisted") {
+        throw new HttpError(400, "VALIDATION", "visibility 无效");
+      }
+      fields.push("visibility = :visibility");
+      params.visibility = v;
+      if (v === "public") {
+        fields.push("published_at = COALESCE(published_at, CURRENT_TIMESTAMP(3))");
+      }
     }
 
     if (fields.length) {

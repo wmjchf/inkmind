@@ -57,6 +57,8 @@ export default function ProfilePage() {
 
   return (
     <View className="page">
+      
+
       {/* 账户（会员档位 / 用量）区块暂时隐藏；恢复时需再接 fetchMe + me state + 原 card */}
 
       {/* <View className="stats-header">
@@ -81,15 +83,17 @@ export default function ProfilePage() {
       </View> */}
 
       <View
-        className="card card-year-summary card-year-summary--disabled"
-        onClick={() => Taro.showToast({ title: "敬请期待", icon: "none" })}
+        className="card card-collection-card"
+        onClick={() => void Taro.navigateTo({ url: "/pages/index/index" })}
       >
-        <View className="year-summary-head">
-          <Image className="year-summary-icon" src={profileIcons.chart} mode="aspectFit" />
-          <View className="year-summary-copy">
-            <Text className="year-summary-badge">年度</Text>
-            <Text className="year-summary-title">年度总结</Text>
-            <View className="year-summary-sub">回顾这一年的阅读与摘录</View>
+        <View className="collection-head">
+          <Image className="collection-icon" src={profileIcons.book} mode="aspectFit" />
+          <View className="collection-copy">
+            <Text className="collection-badge">书架</Text>
+            <Text className="collection-title">我的收藏</Text>
+            <View className="muted collection-sub">
+              {stats != null ? `共 ${stats.totalEntries} 条摘录` : "查看全部书目与摘录"}
+            </View>
           </View>
         </View>
       </View>
@@ -115,6 +119,20 @@ export default function ProfilePage() {
             <Text className="action-badge">帮助</Text>
             <Text className="action-title">意见反馈</Text>
             <View className="muted">遇到问题或有产品建议，告诉我们</View>
+          </View>
+        </View>
+      </View>
+
+      <View
+        className="card card-year-summary card-year-summary--disabled"
+        onClick={() => Taro.showToast({ title: "敬请期待", icon: "none" })}
+      >
+        <View className="year-summary-head">
+          <Image className="year-summary-icon" src={profileIcons.chart} mode="aspectFit" />
+          <View className="year-summary-copy">
+            <Text className="year-summary-badge">年度</Text>
+            <Text className="year-summary-title">年度总结</Text>
+            <View className="year-summary-sub">回顾这一年的阅读与摘录</View>
           </View>
         </View>
       </View>

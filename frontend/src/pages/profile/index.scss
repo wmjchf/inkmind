@@ -101,6 +101,59 @@
   line-height: 1.5;
 }
 
+.card-collection-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.98) 0%,
+    rgba(240, 249, 255, 0.75) 100%
+  );
+  border: 1rpx solid rgba(56, 168, 255, 0.2);
+}
+
+.collection-head {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 20rpx;
+}
+
+.collection-icon {
+  width: 56rpx;
+  height: 56rpx;
+  flex-shrink: 0;
+  margin-top: 2rpx;
+}
+
+.collection-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.collection-badge {
+  display: inline-block;
+  font-size: 20rpx;
+  font-weight: 600;
+  color: #38a8ff;
+  padding: 4rpx 14rpx;
+  margin-bottom: 12rpx;
+  border-radius: 999rpx;
+  background: rgba(56, 168, 255, 0.1);
+  border: 1rpx solid rgba(56, 168, 255, 0.2);
+}
+
+.collection-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+  margin-bottom: 8rpx;
+  color: #333333;
+}
+
+.collection-sub {
+  font-size: 24rpx;
+  line-height: 1.45;
+}
+
 .action-card {
   background: linear-gradient(
     135deg,

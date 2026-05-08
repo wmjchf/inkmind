@@ -1,5 +1,5 @@
 import { View, Text, Image, ScrollView } from "@tarojs/components";
-import Taro, { useDidShow, useLoad, usePullDownRefresh, useReady } from "@tarojs/taro";
+import Taro, { useDidShow, useLoad, usePullDownRefresh } from "@tarojs/taro";
 import { useCallback, useRef, useState } from "react";
 import { indexIcons } from "../../assets/index-icons";
 import { listEmptyBook } from "../../assets/list-empty-icons";
@@ -71,19 +71,7 @@ export default function IndexPage() {
     void refresh(null);
   });
 
-  useReady(() => {
-    const page = Taro.getCurrentInstance().page;
-    if (!page) return;
-    const tabBar = Taro.getTabBar<{ setSelected: (n: number) => void }>(page);
-    tabBar?.setSelected?.(0);
-  });
-
   useDidShow(() => {
-    const page = Taro.getCurrentInstance().page;
-    if (page) {
-      const tabBar = Taro.getTabBar<{ setSelected: (n: number) => void }>(page);
-      tabBar?.setSelected?.(0);
-    }
     if (consumeIndexListRefreshRequest()) {
       void refresh(selectedBookTitleRef.current);
     }

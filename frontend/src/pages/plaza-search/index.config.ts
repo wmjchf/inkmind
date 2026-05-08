@@ -1,5 +1,5 @@
 export default {
-  navigationBarTitleText: "搜索收藏",
+  navigationBarTitleText: "搜索广场",
   navigationBarBackgroundColor: "#ffffff",
   navigationBarTextStyle: "black",
 };

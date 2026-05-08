@@ -67,6 +67,23 @@ exports.entriesRouter.post("/", (0, requireAuth_1.asyncHandler)(async (req, res)
     });
     res.status(201).json({ id });
 }));
+/** 必须在 `GET /:id` 之前注册 */
+exports.entriesRouter.post("/:id/like", (0, requireAuth_1.asyncHandler)(async (req, res) => {
+    const userId = req.userId;
+    const id = parseIntParam(req.params.id, 0);
+    if (!id)
+        throw new httpError_1.HttpError(400, "VALIDATION", "无效 id");
+    const result = await (0, entryService_1.toggleEntryLike)(userId, id);
+    res.json(result);
+}));
+exports.entriesRouter.post("/:id/save", (0, requireAuth_1.asyncHandler)(async (req, res) => {
+    const userId = req.userId;
+    const id = parseIntParam(req.params.id, 0);
+    if (!id)
+        throw new httpError_1.HttpError(400, "VALIDATION", "无效 id");
+    const result = await (0, entryService_1.toggleEntrySave)(userId, id);
+    res.json(result);
+}));
 /** 必须在 `GET /:id` 之前注册，否则 `wxacode` 会被当成 id */
 exports.entriesRouter.get("/:id/wxacode", (0, requireAuth_1.asyncHandler)(async (req, res) => {
     const userId = req.userId;
@@ -105,11 +122,20 @@ exports.entriesRouter.patch("/:id", (0, requireAuth_1.asyncHandler)(async (req, 
     if (!id)
         throw new httpError_1.HttpError(400, "VALIDATION", "无效 id");
     const body = req.body || {};
+    let visibility;
+    if (body.visibility !== undefined && body.visibility !== null) {
+        const v = String(body.visibility).trim();
+        if (v === "private" || v === "public" || v === "unlisted")
+            visibility = v;
+        else
+            throw new httpError_1.HttpError(400, "VALIDATION", "visibility 无效");
+    }
     const ok = await (0, entryService_1.updateEntry)(userId, id, {
         content: body.content,
         bookTitle: body.bookTitle,
         note: body.note,
         tags: body.tags !== undefined ? (Array.isArray(body.tags) ? body.tags.map(String) : []) : undefined,
+        visibility,
     });
     if (!ok) {
         return res.status(404).json({ code: "NOT_FOUND", message: "收藏不存在" });

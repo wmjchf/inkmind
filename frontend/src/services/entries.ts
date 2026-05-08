@@ -2,6 +2,8 @@ import { apiRequest } from "./api";
 
 export type Tag = { id: number; name: string };
 
+export type EntryVisibility = "private" | "public" | "unlisted";
+
 export type EntryItem = {
   id: number;
   content: string;
@@ -9,6 +11,7 @@ export type EntryItem = {
   book_title: string | null;
   note: string | null;
   created_at: string;
+  visibility?: EntryVisibility;
   tags: Tag[];
 };
 
@@ -18,6 +21,13 @@ export type Interpretation = {
   resonance: string;
   reflection_question: string;
   created_at: string;
+};
+
+/** 浏览他人公开摘录时的点赞/收藏状态 */
+export type EntryInteraction = {
+  likeCount: number;
+  likedByMe: boolean;
+  savedByMe: boolean;
 };
 
 export async function fetchEntries(params: {
@@ -101,8 +111,23 @@ export async function fetchEntryDetail(id: number) {
     entry: EntryItem & { source_image_url: string | null; updated_at: string };
     interpretation: Interpretation | null;
     is_owner: boolean;
+    interaction?: EntryInteraction;
   }>({
     url: `/entries/${id}`,
+  });
+}
+
+export async function toggleEntryLike(id: number) {
+  return apiRequest<{ liked: boolean; likeCount: number }>({
+    url: `/entries/${id}/like`,
+    method: "POST",
+  });
+}
+
+export async function toggleEntrySave(id: number) {
+  return apiRequest<{ saved: boolean }>({
+    url: `/entries/${id}/save`,
+    method: "POST",
   });
 }
 
@@ -113,6 +138,7 @@ export async function updateEntry(
     content?: string;
     bookTitle?: string | null;
     tags?: string[];
+    visibility?: EntryVisibility;
   }
 ) {
   return apiRequest<{ ok: boolean }>({

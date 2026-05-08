@@ -12,7 +12,10 @@ import {
   runInterpretation,
   runOcr,
   applyAiTags,
+  toggleEntryLike,
+  toggleEntrySave,
   type AiTagStrategy,
+  type EntryVisibility,
 } from "../services/entryService";
 import { getUnlimitedWxacodePng, mockWxacodePng } from "../services/wechatWxacode";
 import { config } from "../config";
@@ -102,6 +105,29 @@ entriesRouter.post(
   })
 );
 
+/** 必须在 `GET /:id` 之前注册 */
+entriesRouter.post(
+  "/:id/like",
+  asyncHandler(async (req, res) => {
+    const userId = (req as AuthedRequest).userId;
+    const id = parseIntParam(req.params.id, 0);
+    if (!id) throw new HttpError(400, "VALIDATION", "无效 id");
+    const result = await toggleEntryLike(userId, id);
+    res.json(result);
+  })
+);
+
+entriesRouter.post(
+  "/:id/save",
+  asyncHandler(async (req, res) => {
+    const userId = (req as AuthedRequest).userId;
+    const id = parseIntParam(req.params.id, 0);
+    if (!id) throw new HttpError(400, "VALIDATION", "无效 id");
+    const result = await toggleEntrySave(userId, id);
+    res.json(result);
+  })
+);
+
 /** 必须在 `GET /:id` 之前注册，否则 `wxacode` 会被当成 id */
 entriesRouter.get(
   "/:id/wxacode",
@@ -147,11 +173,19 @@ entriesRouter.patch(
     const id = parseIntParam(req.params.id, 0);
     if (!id) throw new HttpError(400, "VALIDATION", "无效 id");
     const body = req.body || {};
+    let visibility: EntryVisibility | undefined;
+    if (body.visibility !== undefined && body.visibility !== null) {
+      const v = String(body.visibility).trim();
+      if (v === "private" || v === "public" || v === "unlisted") visibility = v;
+      else throw new HttpError(400, "VALIDATION", "visibility 无效");
+    }
+
     const ok = await updateEntry(userId, id, {
       content: body.content,
       bookTitle: body.bookTitle,
       note: body.note,
       tags: body.tags !== undefined ? (Array.isArray(body.tags) ? body.tags.map(String) : []) : undefined,
+      visibility,
     });
     if (!ok) {
       return res.status(404).json({ code: "NOT_FOUND", message: "收藏不存在" });

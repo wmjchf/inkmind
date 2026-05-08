@@ -49,8 +49,8 @@ export default function OcrEntryPage() {
       <View className="btn" onClick={() => void open()}>
         拍照 / 图库 / 手动添加
       </View>
-      <View className="link" onClick={() => Taro.switchTab({ url: "/pages/index/index" })}>
-        回收藏
+      <View className="link" onClick={() => Taro.switchTab({ url: "/pages/plaza/index" })}>
+        回广场
       </View>
     </View>
   );

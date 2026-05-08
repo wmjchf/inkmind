@@ -1,7 +1,9 @@
 export default {
   pages: [
+    "pages/plaza/index",
     "pages/index/index",
     "pages/search/index",
+    "pages/plaza-search/index",
     "pages/ocr-entry/index",
     "pages/profile/index",
     "pages/feedback/index",
@@ -27,7 +29,7 @@ export default {
     backgroundColor: "#ffffff",
     borderStyle: "white",
     list: [
-      { pagePath: "pages/index/index", text: "收藏" },
+      { pagePath: "pages/plaza/index", text: "广场" },
       { pagePath: "pages/ocr-entry/index", text: "识别" },
       { pagePath: "pages/profile/index", text: "我的" },
     ],

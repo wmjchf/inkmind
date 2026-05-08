@@ -1,4 +1,4 @@
-import { View, Text, Image, Button, Textarea } from "@tarojs/components";
+import { View, Text, Image, Button, Textarea, Switch } from "@tarojs/components";
 import Taro, { useLoad, useReady, useShareAppMessage } from "@tarojs/taro";
 import { useEffect, useRef, useState } from "react";
 import { ensureLogin } from "../../services/auth";
@@ -9,7 +9,11 @@ import {
   deleteEntry,
   fetchEntryDetail,
   interpretEntry,
+  toggleEntryLike,
+  toggleEntrySave,
   updateEntry,
+  type EntryInteraction,
+  type EntryVisibility,
   type Interpretation,
 } from "../../services/entries";
 import { entryDetailIcons } from "../../assets/entry-detail-icons";
@@ -49,6 +53,11 @@ export default function EntryDetailPage() {
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
   const [interpreting, setInterpreting] = useState(false);
+  const [visibility, setVisibility] = useState<EntryVisibility>("private");
+  const [plazaSaving, setPlazaSaving] = useState(false);
+  /** 他人浏览公开摘录：点赞/收藏 */
+  const [interaction, setInteraction] = useState<EntryInteraction | null>(null);
+  const [interactionBusy, setInteractionBusy] = useState(false);
   /** 键盘高度（px），用于 fixed 底部弹层上移，避免遮挡输入框（需关闭 textarea adjustPosition） */
   const [noteKeyboardPx, setNoteKeyboardPx] = useState(0);
   /**
@@ -142,6 +151,8 @@ export default function EntryDetailPage() {
     setSourceImageUrl(res.entry.source_image_url);
     setInterpretation(res.interpretation);
     setUserNote(res.entry.note ?? "");
+    setVisibility(res.entry.visibility ?? "private");
+    setInteraction(res.interaction ?? null);
     /* 旧接口无 is_owner 时视为本人，避免误伤 */
     setIsEntryOwner(res.is_owner !== false);
   };
@@ -213,6 +224,58 @@ export default function EntryDetailPage() {
     setNoteModalOpen(false);
   };
 
+  const onToggleLike = async () => {
+    if (!id || !interaction || interactionBusy) return;
+    try {
+      await ensureLogin();
+      setInteractionBusy(true);
+      const r = await toggleEntryLike(id);
+      setInteraction((prev) => ({
+        likeCount: r.likeCount,
+        likedByMe: r.liked,
+        savedByMe: prev?.savedByMe ?? false,
+      }));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "操作失败";
+      Taro.showToast({ title: msg, icon: "none" });
+    } finally {
+      setInteractionBusy(false);
+    }
+  };
+
+  const onToggleSave = async () => {
+    if (!id || !interaction || interactionBusy) return;
+    try {
+      await ensureLogin();
+      setInteractionBusy(true);
+      const r = await toggleEntrySave(id);
+      setInteraction((prev) => (prev ? { ...prev, savedByMe: r.saved } : null));
+      Taro.showToast({ title: r.saved ? "已加入收藏" : "已取消收藏", icon: "success" });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "操作失败";
+      Taro.showToast({ title: msg, icon: "none" });
+    } finally {
+      setInteractionBusy(false);
+    }
+  };
+
+  const onPlazaVisibilityChange = async (checked: boolean) => {
+    if (!id || !isEntryOwner || plazaSaving) return;
+    const next: EntryVisibility = checked ? "public" : "private";
+    try {
+      await ensureLogin();
+      setPlazaSaving(true);
+      await updateEntry(id, { visibility: next });
+      setVisibility(next);
+      Taro.showToast({ title: checked ? "已设为公开" : "已设为仅自己可见", icon: "success" });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "保存失败";
+      Taro.showToast({ title: msg, icon: "none" });
+    } finally {
+      setPlazaSaving(false);
+    }
+  };
+
   const saveNoteFromModal = async () => {
     if (!id || !isEntryOwner) return;
     try {
@@ -243,7 +306,7 @@ export default function EntryDetailPage() {
           await deleteEntry(id);
           requestIndexListRefresh();
           Taro.showToast({ title: "已删除", icon: "success" });
-          setTimeout(() => Taro.switchTab({ url: "/pages/index/index" }), 400);
+          setTimeout(() => Taro.switchTab({ url: "/pages/plaza/index" }), 400);
         } catch (e) {
           const msg = e instanceof Error ? e.message : "删除失败";
           Taro.showToast({ title: msg, icon: "none" });
@@ -257,7 +320,7 @@ export default function EntryDetailPage() {
     if (pages.length > 1) {
       void Taro.navigateBack();
     } else {
-      void Taro.switchTab({ url: "/pages/index/index" });
+      void Taro.switchTab({ url: "/pages/plaza/index" });
     }
   };
 
@@ -293,6 +356,32 @@ export default function EntryDetailPage() {
           <Text className="card-kicker">正文</Text>
           <Text className="quote-body">{content || "…"}</Text>
         </View>
+
+        {isEntryOwner ? (
+          <View className="card card-plaza">
+            <View className="plaza-row">
+              <View className="plaza-copy">
+                <Text className="card-kicker">是否公开</Text>
+                <Text className="plaza-status">
+                  {visibility === "public"
+                    ? "当前：公开（广场可见）"
+                    : visibility === "unlisted"
+                      ? "当前：仅链接可见"
+                      : "当前：仅自己可见"}
+                </Text>
+                <Text className="plaza-hint">
+                  打开开关后摘录正文会对他人可见并出现在广场；你的随记始终仅自己可见。
+                </Text>
+              </View>
+              <Switch
+                checked={visibility === "public"}
+                color="#38a8ff"
+                disabled={plazaSaving}
+                onChange={(e) => void onPlazaVisibilityChange(Boolean(e.detail.value))}
+              />
+            </View>
+          </View>
+        ) : null}
 
         <View className="card card-note">
           <View className="note-card-head">
@@ -348,41 +437,73 @@ export default function EntryDetailPage() {
         </View>
       </View>
 
-      <View className="actions">
-        <View
-          className={`btn primary ${!isEntryOwner ? "btn-primary-disabled" : interpreting ? "primary-loading" : ""}`}
-          onClick={() => isEntryOwner && !interpreting && void onInterpret()}
-        >
-          {isEntryOwner && interpreting ? (
-            <View className="btn-loading-row">
-              <Text className="btn-primary-text">解读中</Text>
-              <View className="btn-loading-dots">
-                <View className="btn-loading-dot" />
-                <View className="btn-loading-dot" />
-                <View className="btn-loading-dot" />
+      {isEntryOwner ? (
+        <View className="actions">
+          <View
+            className={`btn primary ${interpreting ? "primary-loading" : ""}`}
+            onClick={() => !interpreting && void onInterpret()}
+          >
+            {interpreting ? (
+              <View className="btn-loading-row">
+                <Text className="btn-primary-text">解读中</Text>
+                <View className="btn-loading-dots">
+                  <View className="btn-loading-dot" />
+                  <View className="btn-loading-dot" />
+                  <View className="btn-loading-dot" />
+                </View>
               </View>
-            </View>
-          ) : (
-            <Text className="btn-primary-text">
-              {isEntryOwner
-                ? interpretation
-                  ? "重新解读"
-                  : "生成解读"
-                : "仅作者可生成解读"}
-            </Text>
-          )}
-        </View>
-        <View className="actions-side">
-          <Button className="btn-icon btn-share-open" onClick={() => setPosterModalOpen(true)}>
-            <Image className="btn-icon-img" src={entryDetailIcons.share} mode="aspectFit" />
-          </Button>
-          {isEntryOwner ? (
+            ) : (
+              <Text className="btn-primary-text">
+                {interpretation ? "重新解读" : "生成解读"}
+              </Text>
+            )}
+          </View>
+          <View className="actions-side">
+            <Button className="btn-icon btn-share-open" onClick={() => setPosterModalOpen(true)}>
+              <Image className="btn-icon-img" src={entryDetailIcons.share} mode="aspectFit" />
+            </Button>
             <View className="btn-icon btn-icon-danger" onClick={onDelete}>
               <Image className="btn-icon-img" src={entryDetailIcons.trash} mode="aspectFit" />
             </View>
-          ) : null}
+          </View>
         </View>
-      </View>
+      ) : (
+        <View className="actions actions-visitor">
+          {interaction ? (
+            <View className="visitor-chips">
+              <View
+                className={`visitor-chip visitor-chip-like ${interaction.likedByMe ? "visitor-chip--on" : ""} ${interactionBusy ? "visitor-chip--busy" : ""}`}
+                onClick={() => void onToggleLike()}
+              >
+                <Image
+                  className="visitor-chip-icon"
+                  src={interaction.likedByMe ? entryDetailIcons.heartFilled : entryDetailIcons.heartOutline}
+                  mode="aspectFit"
+                />
+                <Text className="visitor-chip-label">{interaction.likeCount}</Text>
+              </View>
+              <View
+                className={`visitor-chip visitor-chip-save ${interaction.savedByMe ? "visitor-chip--on" : ""} ${interactionBusy ? "visitor-chip--busy" : ""}`}
+                onClick={() => void onToggleSave()}
+              >
+                <Image
+                  className="visitor-chip-icon"
+                  src={interaction.savedByMe ? entryDetailIcons.bookmarkFilled : entryDetailIcons.bookmarkOutline}
+                  mode="aspectFit"
+                />
+                <Text className="visitor-chip-text">{interaction.savedByMe ? "已收藏" : "收藏"}</Text>
+              </View>
+            </View>
+          ) : (
+            <View className="visitor-chips visitor-chips--placeholder" />
+          )}
+          <View className="actions-side">
+            <Button className="btn-icon btn-share-open" onClick={() => setPosterModalOpen(true)}>
+              <Image className="btn-icon-img" src={entryDetailIcons.share} mode="aspectFit" />
+            </Button>
+          </View>
+        </View>
+      )}
 
       {noteModalOpen ? (
         <View className="note-modal-mask" onClick={closeNoteModal}>
