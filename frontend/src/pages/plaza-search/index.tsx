@@ -1,34 +1,10 @@
-import { View, Text, Image, Input, ScrollView } from "@tarojs/components";
+import { View, Text, Input, ScrollView } from "@tarojs/components";
 import Taro from "@tarojs/taro";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { PlazaFeedCard } from "../../components/plaza-feed-card";
 import { ensureLogin } from "../../services/auth";
 import { fetchPlazaFeed, type PlazaFeedItem } from "../../services/plaza";
 import "./index.scss";
-
-function formatBookTitleWithGuillemets(raw: string | null | undefined): string | null {
-  if (raw == null) return null;
-  const t = raw.trim();
-  if (!t) return null;
-  if (t.startsWith("《") && t.endsWith("》") && t.length >= 4) return t;
-  const inner = t.replace(/^[《\s]+/u, "").replace(/[》\s]+$/u, "").trim();
-  if (!inner) return null;
-  return `《${inner}》`;
-}
-
-function formatEntryDateTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const y = d.getFullYear();
-  const m = d.getMonth() + 1;
-  const day = d.getDate();
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${y}年${m}月${day}日 ${hh}:${mm}`;
-}
-
-function excerptPreviewText(s: string): string {
-  return s.replace(/\s+/g, " ").trim();
-}
 
 const SEARCH_DEBOUNCE_MS = 350;
 
@@ -108,39 +84,16 @@ export default function PlazaSearchPage() {
 
       {items.length > 0 ? (
         <ScrollView className="list-scroll-plaza-search" scrollY>
-          {items.map((it) => {
-            const bookLabel =
-              formatBookTitleWithGuillemets(it.book_title) ?? it.book_title ?? "";
-            const preview = excerptPreviewText(it.content);
-            const name = it.author.nickname?.trim() || "书友";
-            const letter = name.slice(0, 1);
-            const dateStr = formatEntryDateTime(it.created_at);
-            return (
-              <View
+          <View className="plaza-search-cards">
+            {items.map((it) => (
+              <PlazaFeedCard
                 key={it.id}
-                className="plaza-search-card"
-                onClick={() => goDetail(it.id)}
-              >
-                {/* <View className="plaza-author">
-                  {it.author.avatarUrl ? (
-                    <Image
-                      className="plaza-avatar"
-                      src={it.author.avatarUrl}
-                      mode="aspectFill"
-                    />
-                  ) : (
-                    <View className="plaza-avatar plaza-avatar-placeholder">
-                      <Text className="plaza-avatar-letter">{letter}</Text>
-                    </View>
-                  )}
-                  <Text className="plaza-name">{name}</Text>
-                </View> */}
-                {bookLabel ? <Text className="plaza-book">{bookLabel}</Text> : null}
-                <Text className="card-text">{preview}</Text>
-                <Text className="plaza-time">{dateStr}</Text>
-              </View>
-            );
-          })}
+                item={it}
+                // showAuthor
+                onNavigateDetail={goDetail}
+              />
+            ))}
+          </View>
         </ScrollView>
       ) : (
         <View className="empty-plaza-search">

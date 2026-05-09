@@ -1,39 +1,16 @@
 import { View, Text, Image, ScrollView } from "@tarojs/components";
-import Taro, { useDidShow, usePullDownRefresh, useReady } from "@tarojs/taro";
+import Taro, { useDidShow, useLoad, usePullDownRefresh, useReady } from "@tarojs/taro";
 import { useCallback, useState } from "react";
+import { PlazaFeedCard } from "../../components/plaza-feed-card";
 import { indexIcons } from "../../assets/index-icons";
 import { ensureLogin } from "../../services/auth";
 import { fetchPlazaFeed, type PlazaFeedItem } from "../../services/plaza";
 import "./index.scss";
 
-function formatBookTitleWithGuillemets(raw: string | null | undefined): string | null {
-  if (raw == null) return null;
-  const t = raw.trim();
-  if (!t) return null;
-  if (t.startsWith("《") && t.endsWith("》") && t.length >= 4) return t;
-  const inner = t.replace(/^[《\s]+/u, "").replace(/[》\s]+$/u, "").trim();
-  if (!inner) return null;
-  return `《${inner}》`;
-}
-
-function formatEntryDateTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  const y = d.getFullYear();
-  const m = d.getMonth() + 1;
-  const day = d.getDate();
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${y}年${m}月${day}日 ${hh}:${mm}`;
-}
-
-function excerptPreviewText(s: string): string {
-  return s.replace(/\s+/g, " ").trim();
-}
-
 export default function PlazaPage() {
   const [items, setItems] = useState<PlazaFeedItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  /** 首屏 true，避免首帧空白误判为「无内容」 */
+  const [loading, setLoading] = useState(true);
 
   const loadPlaza = useCallback(async () => {
     setLoading(true);
@@ -53,6 +30,11 @@ export default function PlazaPage() {
     }
   }, []);
 
+  /** 仅首次进入页面拉列表；切换 Tab 回来不重复请求，需更新时下拉刷新 */
+  useLoad(() => {
+    void loadPlaza();
+  });
+
   useReady(() => {
     const page = Taro.getCurrentInstance().page;
     if (!page) return;
@@ -66,7 +48,6 @@ export default function PlazaPage() {
       const tabBar = Taro.getTabBar<{ setSelected: (n: number) => void }>(page);
       tabBar?.setSelected?.(0);
     }
-    void loadPlaza();
   });
 
   usePullDownRefresh(() => {
@@ -100,23 +81,14 @@ export default function PlazaPage() {
           </View>
         ) : (
           <View className="plaza-list">
-            {items.map((it) => {
-              const bookLabel =
-                formatBookTitleWithGuillemets(it.book_title) ?? it.book_title ?? "";
-              const preview = excerptPreviewText(it.content);
-              const dateStr = formatEntryDateTime(it.created_at);
-              return (
-                <View
-                  key={it.id}
-                  className="card plaza-card"
-                  onClick={() => openDetail(it.id)}
-                >
-                  {bookLabel ? <Text className="plaza-book">{bookLabel}</Text> : null}
-                  <Text className="card-text">{preview}</Text>
-                  <Text className="plaza-time">{dateStr}</Text>
-                </View>
-              );
-            })}
+            {items.map((it) => (
+              <PlazaFeedCard
+                key={it.id}
+                item={it}
+                showAuthor={false}
+                onNavigateDetail={openDetail}
+              />
+            ))}
           </View>
         )}
       </ScrollView>

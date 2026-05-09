@@ -21,7 +21,7 @@ export default class CustomTabBar extends Component<unknown, State> {
 
   switchLeft = () => {
     this.setState({ selected: 0 });
-    void Taro.switchTab({ url: "/pages/plaza/index" });
+    void Taro.switchTab({ url: "/pages/index/index" });
   };
 
   switchRight = () => {
@@ -58,29 +58,33 @@ export default class CustomTabBar extends Component<unknown, State> {
     const { selected } = this.state;
     return (
       <View className="tabbar">
-        <View className="tab" onClick={this.switchLeft}>
-          <Image
-            className="tab-icon"
-            src={selected === 0 ? tabIcons.plazaOn : tabIcons.plazaOff}
-            mode="aspectFit"
-          />
-          <Text className={`tab-text ${selected === 0 ? "on" : ""}`}>广场</Text>
-        </View>
+        <View className="tabbar-row">
+          <View className="tab" onClick={this.switchLeft}>
+            <Image
+              className="tab-icon"
+              src={selected === 0 ? tabIcons.collectOn : tabIcons.collectOff}
+              mode="aspectFit"
+            />
+            <Text className={`tab-text ${selected === 0 ? "on" : ""}`}>收藏</Text>
+          </View>
 
-        <View className="tab-center-wrap">
-          <View className="fab" onClick={() => void this.openAddCenter()}>
-            <Image className="fab-icon" src={iconCameraFab} mode="aspectFit" />
+          <View className="tab-center-wrap">
+            <View className="fab" onClick={() => void this.openAddCenter()}>
+              <Image className="fab-icon" src={iconCameraFab} mode="aspectFit" />
+            </View>
+          </View>
+
+          <View className="tab" onClick={this.switchRight}>
+            <Image
+              className="tab-icon"
+              src={selected === 2 ? tabIcons.userOn : tabIcons.userOff}
+              mode="aspectFit"
+            />
+            <Text className={`tab-text ${selected === 2 ? "on" : ""}`}>我的</Text>
           </View>
         </View>
-
-        <View className="tab" onClick={this.switchRight}>
-          <Image
-            className="tab-icon"
-            src={selected === 2 ? tabIcons.userOn : tabIcons.userOff}
-            mode="aspectFit"
-          />
-          <Text className={`tab-text ${selected === 2 ? "on" : ""}`}>我的</Text>
-        </View>
+        {/* 独立条带铺满底部安全区，避免 Home Indicator 区域露底 */}
+        <View className="tabbar-safe-bottom" />
       </View>
     );
   }

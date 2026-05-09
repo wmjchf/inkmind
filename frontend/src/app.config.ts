@@ -1,7 +1,7 @@
 export default {
   pages: [
-    "pages/plaza/index",
     "pages/index/index",
+    "pages/plaza/index",
     "pages/search/index",
     "pages/plaza-search/index",
     "pages/ocr-entry/index",
@@ -18,7 +18,7 @@ export default {
   window: {
     backgroundTextStyle: "dark",
     navigationBarBackgroundColor: "#ffffff",
-    navigationBarTitleText: "读书笔记AI",
+    navigationBarTitleText: "InkMind",
     navigationBarTextStyle: "black",
     backgroundColor: "#f5f7fa",
   },
@@ -29,7 +29,7 @@ export default {
     backgroundColor: "#ffffff",
     borderStyle: "white",
     list: [
-      { pagePath: "pages/plaza/index", text: "广场" },
+      { pagePath: "pages/index/index", text: "收藏" },
       { pagePath: "pages/ocr-entry/index", text: "识别" },
       { pagePath: "pages/profile/index", text: "我的" },
     ],

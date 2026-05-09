@@ -127,8 +127,9 @@ async function listPlazaFeed(opts) {
     const [countRows] = await db_1.pool.query(`SELECT COUNT(*) AS c FROM entries e
      WHERE e.is_deleted = 0 AND e.visibility = 'public'${whereExtra}`, params);
     const total = Number(countRows[0]?.c || 0);
-    const [rows] = await db_1.pool.query(`SELECT e.id, e.content, e.book_title, e.created_at,
-            u.nickname AS author_nickname, u.avatar_url AS author_avatar_url
+    const [rows] = await db_1.pool.query(`SELECT e.id, e.content, e.book_title, e.created_at, e.like_count,
+            u.nickname AS author_nickname, u.avatar_url AS author_avatar_url,
+            (SELECT COUNT(*) FROM entry_saves es WHERE es.entry_id = e.id) AS save_count
      FROM entries e
      INNER JOIN users u ON u.id = e.user_id
      WHERE e.is_deleted = 0 AND e.visibility = 'public'${whereExtra}
@@ -143,12 +144,15 @@ async function listPlazaFeed(opts) {
             nickname: r.author_nickname != null ? String(r.author_nickname) : null,
             avatarUrl: r.author_avatar_url != null ? String(r.author_avatar_url) : null,
         },
+        likeCount: Number(r.like_count ?? 0),
+        saveCount: Number(r.save_count ?? 0),
     }));
     return { items, total };
 }
 async function getEntryDetail(userId, entryId) {
-    const [rows] = await db_1.pool.query(`SELECT id, user_id, content, source_type, source_image_url, book_title, note, created_at, updated_at, visibility, like_count
-     FROM entries WHERE id = :id AND is_deleted = 0`, { id: entryId });
+    const [rows] = await db_1.pool.query(`SELECT e.id, e.user_id, e.content, e.source_type, e.source_image_url, e.book_title, e.note, e.created_at, e.updated_at, e.visibility, e.like_count,
+            (SELECT COUNT(*) FROM entry_saves es WHERE es.entry_id = e.id) AS save_count
+     FROM entries e WHERE e.id = :id AND e.is_deleted = 0`, { id: entryId });
     if (!rows.length)
         return null;
     const r = rows[0];
@@ -170,17 +174,20 @@ async function getEntryDetail(userId, entryId) {
             created_at: interp[0].created_at,
         }
         : null;
+    const likeCount = Number(r.like_count ?? 0);
+    const saveCount = Number(r.save_count ?? 0);
     let interaction;
     if (!is_owner && visibility === "public") {
-        const likeCount = Number(r.like_count ?? 0);
         const [lkRows] = await db_1.pool.query(`SELECT 1 FROM entry_likes WHERE user_id = :userId AND entry_id = :entryId LIMIT 1`, { userId, entryId });
         const [svRows] = await db_1.pool.query(`SELECT 1 FROM entry_saves WHERE user_id = :userId AND entry_id = :entryId LIMIT 1`, { userId, entryId });
         interaction = {
             likeCount,
+            saveCount,
             likedByMe: lkRows.length > 0,
             savedByMe: svRows.length > 0,
         };
     }
+    const publicStats = is_owner && visibility === "public" ? { likeCount, saveCount } : undefined;
     return {
         entry: {
             id: r.id,
@@ -197,6 +204,7 @@ async function getEntryDetail(userId, entryId) {
         interpretation,
         is_owner,
         interaction,
+        publicStats,
     };
 }
 /** 点赞/取消赞（仅公开摘录，且不能赞自己的） */
@@ -270,8 +278,10 @@ async function toggleEntrySave(actorUserId, entryId) {
         else {
             await conn.query(`INSERT INTO entry_saves (user_id, entry_id) VALUES (:userId, :entryId)`, { userId: actorUserId, entryId });
         }
+        const [cntRows] = await conn.query(`SELECT COUNT(*) AS c FROM entry_saves WHERE entry_id = :entryId`, { entryId });
+        const saveCount = Number(cntRows[0]?.c ?? 0);
         await conn.commit();
-        return { saved: !hadSave };
+        return { saved: !hadSave, saveCount };
     }
     catch (e) {
         await conn.rollback();

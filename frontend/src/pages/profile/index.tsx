@@ -82,7 +82,7 @@ export default function ProfilePage() {
         </View>
       </View> */}
 
-      <View
+      {/* <View
         className="card card-collection-card"
         onClick={() => void Taro.navigateTo({ url: "/pages/index/index" })}
       >
@@ -96,7 +96,7 @@ export default function ProfilePage() {
             </View>
           </View>
         </View>
-      </View>
+      </View> */}
 
       <View className="card card-daily" onClick={() => void daily()}>
         <View className="daily-head">

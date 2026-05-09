@@ -7,10 +7,10 @@ function svgUrl(svg: string): string {
 const strokeMuted = "#999999";
 const strokeActive = "#38a8ff";
 
-/** 广场：四宫格 */
-const iconPlaza = (stroke: string) =>
+/** 收藏：书签 */
+const iconCollect = (stroke: string) =>
   svgUrl(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`
   );
 
 /** 我的：用户 */
@@ -25,8 +25,8 @@ export const iconCameraFab = svgUrl(
 );
 
 export const tabIcons = {
-  plazaOff: iconPlaza(strokeMuted),
-  plazaOn: iconPlaza(strokeActive),
+  collectOff: iconCollect(strokeMuted),
+  collectOn: iconCollect(strokeActive),
   userOff: iconUser(strokeMuted),
   userOn: iconUser(strokeActive),
 } as const;

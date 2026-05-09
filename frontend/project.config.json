@@ -1,7 +1,7 @@
 {
   "miniprogramRoot": "dist/",
-  "projectname": "ai-reading-notes",
-  "description": "读书笔记AI｜拍照识别书摘与金句，AI打标签与解读，读书笔记摘录与个人收藏。",
+  "projectname": "inkmind",
+  "description": "InkMind｜读书笔记与书摘摘录，拍照识别金句，AI标签与解读，个人收藏管理。",
   "appid": "touristappid",
   "setting": {
     "urlCheck": false,

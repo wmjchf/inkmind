@@ -28,6 +28,8 @@ export type PlazaFeedItem = {
   book_title: string | null;
   created_at: Date;
   author: { nickname: string | null; avatarUrl: string | null };
+  likeCount: number;
+  saveCount: number;
 };
 
 export type Interpretation = {
@@ -207,8 +209,9 @@ export async function listPlazaFeed(opts: {
   const total = Number(countRows[0]?.c || 0);
 
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT e.id, e.content, e.book_title, e.created_at,
-            u.nickname AS author_nickname, u.avatar_url AS author_avatar_url
+    `SELECT e.id, e.content, e.book_title, e.created_at, e.like_count,
+            u.nickname AS author_nickname, u.avatar_url AS author_avatar_url,
+            (SELECT COUNT(*) FROM entry_saves es WHERE es.entry_id = e.id) AS save_count
      FROM entries e
      INNER JOIN users u ON u.id = e.user_id
      WHERE e.is_deleted = 0 AND e.visibility = 'public'${whereExtra}
@@ -226,6 +229,8 @@ export async function listPlazaFeed(opts: {
       nickname: r.author_nickname != null ? String(r.author_nickname) : null,
       avatarUrl: r.author_avatar_url != null ? String(r.author_avatar_url) : null,
     },
+    likeCount: Number(r.like_count ?? 0),
+    saveCount: Number(r.save_count ?? 0),
   }));
 
   return { items, total };
@@ -233,6 +238,7 @@ export async function listPlazaFeed(opts: {
 
 export type EntryInteraction = {
   likeCount: number;
+  saveCount: number;
   likedByMe: boolean;
   savedByMe: boolean;
 };
@@ -245,12 +251,15 @@ export async function getEntryDetail(
   interpretation: Interpretation | null;
   /** 当前登录用户是否为该条摘录的作者（他人通过分享进入时为 false） */
   is_owner: boolean;
-  /** 仅浏览他人公开摘录时有：点赞数与个人点赞/收藏状态 */
+  /** 仅浏览他人公开摘录时有：点赞/收藏数与个人点赞、收藏状态 */
   interaction?: EntryInteraction;
+  /** 作者查看自己的公开摘录时：广场侧点赞数与被大家收藏的次数 */
+  publicStats?: { likeCount: number; saveCount: number };
 } | null> {
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT id, user_id, content, source_type, source_image_url, book_title, note, created_at, updated_at, visibility, like_count
-     FROM entries WHERE id = :id AND is_deleted = 0`,
+    `SELECT e.id, e.user_id, e.content, e.source_type, e.source_image_url, e.book_title, e.note, e.created_at, e.updated_at, e.visibility, e.like_count,
+            (SELECT COUNT(*) FROM entry_saves es WHERE es.entry_id = e.id) AS save_count
+     FROM entries e WHERE e.id = :id AND e.is_deleted = 0`,
     { id: entryId }
   );
   if (!rows.length) return null;
@@ -283,9 +292,11 @@ export async function getEntryDetail(
       }
     : null;
 
+  const likeCount = Number(r.like_count ?? 0);
+  const saveCount = Number(r.save_count ?? 0);
+
   let interaction: EntryInteraction | undefined;
   if (!is_owner && visibility === "public") {
-    const likeCount = Number(r.like_count ?? 0);
     const [lkRows] = await pool.query<RowDataPacket[]>(
       `SELECT 1 FROM entry_likes WHERE user_id = :userId AND entry_id = :entryId LIMIT 1`,
       { userId, entryId }
@@ -296,10 +307,14 @@ export async function getEntryDetail(
     );
     interaction = {
       likeCount,
+      saveCount,
       likedByMe: lkRows.length > 0,
       savedByMe: svRows.length > 0,
     };
   }
+
+  const publicStats =
+    is_owner && visibility === "public" ? { likeCount, saveCount } : undefined;
 
   return {
     entry: {
@@ -317,6 +332,7 @@ export async function getEntryDetail(
     interpretation,
     is_owner,
     interaction,
+    publicStats,
   };
 }
 
@@ -385,7 +401,10 @@ export async function toggleEntryLike(
 }
 
 /** 收藏/取消收藏他人公开摘录（书签） */
-export async function toggleEntrySave(actorUserId: number, entryId: number): Promise<{ saved: boolean }> {
+export async function toggleEntrySave(
+  actorUserId: number,
+  entryId: number
+): Promise<{ saved: boolean; saveCount: number }> {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -422,8 +441,14 @@ export async function toggleEntrySave(actorUserId: number, entryId: number): Pro
       );
     }
 
+    const [cntRows] = await conn.query<RowDataPacket[]>(
+      `SELECT COUNT(*) AS c FROM entry_saves WHERE entry_id = :entryId`,
+      { entryId }
+    );
+    const saveCount = Number(cntRows[0]?.c ?? 0);
+
     await conn.commit();
-    return { saved: !hadSave };
+    return { saved: !hadSave, saveCount };
   } catch (e) {
     await conn.rollback();
     throw e;

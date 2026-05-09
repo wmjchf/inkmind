@@ -26,6 +26,7 @@ export type Interpretation = {
 /** 浏览他人公开摘录时的点赞/收藏状态 */
 export type EntryInteraction = {
   likeCount: number;
+  saveCount: number;
   likedByMe: boolean;
   savedByMe: boolean;
 };
@@ -112,6 +113,8 @@ export async function fetchEntryDetail(id: number) {
     interpretation: Interpretation | null;
     is_owner: boolean;
     interaction?: EntryInteraction;
+    /** 本人查看自己的公开摘录时：他人点赞数 / 收藏人数 */
+    publicStats?: { likeCount: number; saveCount: number };
   }>({
     url: `/entries/${id}`,
   });
@@ -125,7 +128,7 @@ export async function toggleEntryLike(id: number) {
 }
 
 export async function toggleEntrySave(id: number) {
-  return apiRequest<{ saved: boolean }>({
+  return apiRequest<{ saved: boolean; saveCount: number }>({
     url: `/entries/${id}/save`,
     method: "POST",
   });

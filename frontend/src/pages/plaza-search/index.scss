@@ -48,68 +48,12 @@
   box-sizing: border-box;
 }
 
-.plaza-search-card {
+.plaza-search-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  padding-bottom: 8rpx;
   box-sizing: border-box;
-  background: #ffffff;
-  border-radius: 20rpx;
-  padding: 24rpx 28rpx;
-  margin-bottom: 20rpx;
-  border: 1rpx solid rgba(0, 0, 0, 0.06);
-}
-
-.plaza-author {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 16rpx;
-  margin-bottom: 16rpx;
-}
-
-.plaza-avatar {
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background: #e8f4ff;
-}
-
-.plaza-avatar-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, rgba(56, 168, 255, 0.25), rgba(56, 168, 255, 0.08));
-}
-
-.plaza-avatar-letter {
-  font-size: 26rpx;
-  font-weight: 600;
-  color: #38a8ff;
-}
-
-.plaza-name {
-  font-size: 28rpx;
-  font-weight: 500;
-  color: #333333;
-}
-
-.plaza-book {
-  display: block;
-  font-size: 24rpx;
-  color: #888888;
-  margin-bottom: 12rpx;
-}
-
-.card-text {
-  font-size: 30rpx;
-  line-height: 1.65;
-  color: #333333;
-}
-
-.plaza-time {
-  display: block;
-  margin-top: 16rpx;
-  font-size: 22rpx;
-  color: #bbbbbb;
 }
 
 .empty-plaza-search {

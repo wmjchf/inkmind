@@ -72,6 +72,11 @@ export default function IndexPage() {
   });
 
   useDidShow(() => {
+    const page = Taro.getCurrentInstance().page;
+    if (page) {
+      const tabBar = Taro.getTabBar<{ setSelected: (n: number) => void }>(page);
+      tabBar?.setSelected?.(0);
+    }
     if (consumeIndexListRefreshRequest()) {
       void refresh(selectedBookTitleRef.current);
     }

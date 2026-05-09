@@ -5,11 +5,20 @@
   bottom: 0;
   z-index: 999;
   display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0;
+  box-sizing: border-box;
   background: linear-gradient(180deg, #f5fbff 0%, #ffffff 45%, #ffffff 100%);
   border-top: 1rpx solid rgba(56, 168, 255, 0.12);
+}
+
+.tabbar-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-around;
+  padding: 8px 0 8px;
   box-sizing: border-box;
 }
 
@@ -67,4 +76,13 @@
 .fab-icon {
   width: 56rpx;
   height: 56rpx;
+}
+
+/* 与 Tab 栏同色铺满底部安全区（兼容旧版 iOS 的 constant） */
+.tabbar-safe-bottom {
+  width: 100%;
+  flex-shrink: 0;
+  background-color: #ffffff;
+  height: constant(safe-area-inset-bottom);
+  height: env(safe-area-inset-bottom);
 }

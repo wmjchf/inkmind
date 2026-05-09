@@ -57,6 +57,10 @@ export default function EntryDetailPage() {
   const [plazaSaving, setPlazaSaving] = useState(false);
   /** 他人浏览公开摘录：点赞/收藏 */
   const [interaction, setInteraction] = useState<EntryInteraction | null>(null);
+  /** 本人查看自己的公开摘录：他人点赞数 / 收藏人数 */
+  const [publicStats, setPublicStats] = useState<{ likeCount: number; saveCount: number } | null>(
+    null
+  );
   const [interactionBusy, setInteractionBusy] = useState(false);
   /** 键盘高度（px），用于 fixed 底部弹层上移，避免遮挡输入框（需关闭 textarea adjustPosition） */
   const [noteKeyboardPx, setNoteKeyboardPx] = useState(0);
@@ -129,7 +133,7 @@ export default function EntryDetailPage() {
     const { id: sid, bookTitle: bt, content: c } = shareRef.current;
     const path = `/pages/entry-detail/index?id=${sid}`;
     const t = bt?.trim();
-    let title = "读书笔记AI·摘录";
+    let title = "InkMind·摘录";
     if (t) title = `「${t}」`;
     else {
       const raw = c.trim();
@@ -153,6 +157,7 @@ export default function EntryDetailPage() {
     setUserNote(res.entry.note ?? "");
     setVisibility(res.entry.visibility ?? "private");
     setInteraction(res.interaction ?? null);
+    setPublicStats(res.publicStats ?? null);
     /* 旧接口无 is_owner 时视为本人，避免误伤 */
     setIsEntryOwner(res.is_owner !== false);
   };
@@ -232,6 +237,7 @@ export default function EntryDetailPage() {
       const r = await toggleEntryLike(id);
       setInteraction((prev) => ({
         likeCount: r.likeCount,
+        saveCount: prev?.saveCount ?? 0,
         likedByMe: r.liked,
         savedByMe: prev?.savedByMe ?? false,
       }));
@@ -249,7 +255,9 @@ export default function EntryDetailPage() {
       await ensureLogin();
       setInteractionBusy(true);
       const r = await toggleEntrySave(id);
-      setInteraction((prev) => (prev ? { ...prev, savedByMe: r.saved } : null));
+      setInteraction((prev) =>
+        prev ? { ...prev, savedByMe: r.saved, saveCount: r.saveCount } : null
+      );
       Taro.showToast({ title: r.saved ? "已加入收藏" : "已取消收藏", icon: "success" });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "操作失败";
@@ -268,6 +276,7 @@ export default function EntryDetailPage() {
       await updateEntry(id, { visibility: next });
       setVisibility(next);
       Taro.showToast({ title: checked ? "已设为公开" : "已设为仅自己可见", icon: "success" });
+      await loadDetail(id);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "保存失败";
       Taro.showToast({ title: msg, icon: "none" });
@@ -306,7 +315,7 @@ export default function EntryDetailPage() {
           await deleteEntry(id);
           requestIndexListRefresh();
           Taro.showToast({ title: "已删除", icon: "success" });
-          setTimeout(() => Taro.switchTab({ url: "/pages/plaza/index" }), 400);
+          setTimeout(() => Taro.switchTab({ url: "/pages/index/index" }), 400);
         } catch (e) {
           const msg = e instanceof Error ? e.message : "删除失败";
           Taro.showToast({ title: msg, icon: "none" });
@@ -320,7 +329,7 @@ export default function EntryDetailPage() {
     if (pages.length > 1) {
       void Taro.navigateBack();
     } else {
-      void Taro.switchTab({ url: "/pages/plaza/index" });
+      void Taro.switchTab({ url: "/pages/index/index" });
     }
   };
 
@@ -372,6 +381,13 @@ export default function EntryDetailPage() {
                 <Text className="plaza-hint">
                   打开开关后摘录正文会对他人可见并出现在广场；你的随记始终仅自己可见。
                 </Text>
+                {visibility === "public" && publicStats ? (
+                  <View className="plaza-stats-row">
+                    <Text className="plaza-stats-item">点赞 {publicStats.likeCount}</Text>
+                    <Text className="plaza-stats-sep">·</Text>
+                    <Text className="plaza-stats-item">收藏 {publicStats.saveCount}</Text>
+                  </View>
+                ) : null}
               </View>
               <Switch
                 checked={visibility === "public"}
@@ -491,7 +507,7 @@ export default function EntryDetailPage() {
                   src={interaction.savedByMe ? entryDetailIcons.bookmarkFilled : entryDetailIcons.bookmarkOutline}
                   mode="aspectFit"
                 />
-                <Text className="visitor-chip-text">{interaction.savedByMe ? "已收藏" : "收藏"}</Text>
+                <Text className="visitor-chip-label">{interaction.saveCount ?? 0}</Text>
               </View>
             </View>
           ) : (
